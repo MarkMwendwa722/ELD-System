@@ -4,91 +4,89 @@ import EnhancedMap from '../components/EnhancedMap';
 import { getELDLogs, ELDLogResponse } from '../services/api';
 
 interface ActivityLog extends ELDLogResponse {
-              {logs.map((log, index) => {
-                const accentClass = log.activityStatus === 'driving'
-                  ? 'bg-blue-500'
-                  : log.activityStatus === 'on-duty-not-driving'
-                    ? 'bg-amber-500'
-                    : log.activityStatus === 'off-duty'
-                      ? 'bg-green-500'
-                      : 'bg-gray-500';
+  duration?: number; // in minutes
+}
 
-                const badgeClass = accentClass;
+export default function ELDDashboard() {
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [showMap, setShowMap] = useState(false);
+  const [drivingTime, setDrivingTime] = useState(0);
+  const [onDutyTime, setOnDutyTime] = useState(0);
+  const [offDutyTime, setOffDutyTime] = useState(0);
 
-                return (
-                  <div
-                    key={log.id}
-                    className="relative z-10 card-entrance"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div className="relative ml-10">
-                      <div className={`absolute -left-6 top-0 h-full w-3 rounded-r-xl ${accentClass}`} />
-                      <div className="bg-white rounded-xl p-5 hover:shadow-md transition-shadow border border-gray-200">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center flex-wrap gap-3 mb-2">
-                              <span className={`px-3 py-1 rounded-full text-sm font-semibold text-white ${badgeClass}`}>
-                                {log.activityStatus.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                              </span>
-                              <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full text-sm text-[#121212]">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                                </svg>
-                                {formatDuration(log.duration || 0)}
-                              </span>
-                              <div className="inline-flex text-xs bg-gray-100 text-[#121212] px-2 py-1 rounded border border-gray-200">
-                                #{log.id}
-                              </div>
-                            </div>
+  // Fetch logs for selected date
+  useEffect(() => {
+    const fetchLogs = async () => {
+      setIsLoading(true);
+      try {
+        const startDate = `${selectedDate}T00:00:00`;
+        const endDate = `${selectedDate}T23:59:59`;
 
-                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3">
-                              <div className="flex items-center text-sm text-[#121212]">
-                                <div className="bg-gray-100 p-1.5 rounded-md mr-2">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212]" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                                  </svg>
-                                </div>
-                                <div>
-                                  <span className="text-xs text-[#121212]">TIME WINDOW</span>
-                                  <div className="font-medium">
-                                    {formatTime(log.startTime)}
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="inline-block h-3 w-3 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                    </svg>
-                                    {formatTime(log.endTime)}
-                                  </div>
-                                </div>
-                              </div>
+        const fetchedLogs = await getELDLogs('default_driver', startDate, endDate);
 
-                              <div className="flex items-center text-sm text-[#121212]">
-                                <div className="bg-gray-100 p-1.5 rounded-md mr-2">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212]" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                                  </svg>
-                                </div>
-                                <div>
-                                  <span className="text-xs text-[#121212]">LOCATION</span>
-                                  <div className="font-medium">{log.currentLocation}</div>
-                                </div>
-                              </div>
-                            </div>
+        // Calculate duration for each log
+        const logsWithDuration = fetchedLogs.map((log) => {
+          const start = new Date(log.startTime);
+          const end = new Date(log.endTime);
+          const duration = Math.round((end.getTime() - start.getTime()) / 60000); // minutes
 
-                            {log.remarks && (
-                              <div className="mt-4 bg-gray-100 p-3 rounded-md text-sm text-[#121212] border border-gray-200">
-                                <div className="flex">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#121212] mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                  </svg>
-                                  <span>{log.remarks}</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-              })}
+          return { ...log, duration };
+        });
+
+        setLogs(logsWithDuration);
+
+        // Calculate total times by activity type
+        let driving = 0;
+        let onDuty = 0;
+        let offDuty = 0;
+
+        logsWithDuration.forEach(log => {
+          const duration = log.duration || 0;
+          switch (log.activityStatus) {
+            case 'driving':
+              driving += duration;
+              break;
+            case 'on-duty-not-driving':
+              onDuty += duration;
+              break;
+            case 'off-duty':
+            case 'sleeper-berth':
+              offDuty += duration;
+              break;
+          }
+        });
+
+        setDrivingTime(driving);
+        setOnDutyTime(onDuty);
+        setOffDutyTime(offDuty);
+
+      } catch (error) {
+        console.error('Error fetching logs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLogs();
+  }, [selectedDate]);
+
+  const formatTime = (dateString: string) => {
+    return format(new Date(dateString), 'h:mm a');
+  };
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  // Get all locations with coordinates for map display
+  const mapLocations = logs
+    .filter(log => log.currentLatitude && log.currentLongitude)
+    .map(log => ({
+      id: log.id,
       // Ensure correct format [longitude, latitude] for MapLibre GL
       coordinates: [parseFloat(log.currentLongitude!.toString()), parseFloat(log.currentLatitude!.toString())] as [number, number],
       location: log.currentLocation,
@@ -370,9 +368,7 @@ interface ActivityLog extends ELDLogResponse {
                     className="relative z-10 card-entrance"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    {/* Activity card with colored left accent */}
                     <div className="relative ml-10">
-                      {/* Rounded left accent */}
                       <div className={`absolute -left-6 top-0 h-full w-3 rounded-r-xl ${accentClass}`} />
                       <div className="bg-white rounded-xl p-5 hover:shadow-md transition-shadow border border-gray-200">
                         <div className="flex items-start justify-between">
@@ -381,64 +377,65 @@ interface ActivityLog extends ELDLogResponse {
                               <span className={`px-3 py-1 rounded-full text-sm font-semibold text-white ${badgeClass}`}>
                                 {log.activityStatus.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                               </span>
-                          <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full text-sm text-[#121212]">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                            </svg>
-                            {formatDuration(log.duration || 0)}
-                          </span>
-                          <div className="inline-flex text-xs bg-gray-100 text-[#121212] px-2 py-1 rounded border border-gray-200">
-                            #{log.id}
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3">
-                          <div className="flex items-center text-sm text-[#121212]">
-                            <div className="bg-gray-100 p-1.5 rounded-md mr-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212]" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div>
-                              <span className="text-xs text-[#121212]">TIME WINDOW</span>
-                              <div className="font-medium">
-                                {formatTime(log.startTime)}
-                                <svg xmlns="http://www.w3.org/2000/svg" className="inline-block h-3 w-3 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                              <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full text-sm text-[#121212]">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                                 </svg>
-                                {formatTime(log.endTime)}
+                                {formatDuration(log.duration || 0)}
+                              </span>
+                              <div className="inline-flex text-xs bg-gray-100 text-[#121212] px-2 py-1 rounded border border-gray-200">
+                                #{log.id}
                               </div>
                             </div>
-                          </div>
-                          
-                          <div className="flex items-center text-sm text-[#121212]">
-                            <div className="bg-gray-100 p-1.5 rounded-md mr-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212]" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                              </svg>
+
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3">
+                              <div className="flex items-center text-sm text-[#121212]">
+                                <div className="bg-gray-100 p-1.5 rounded-md mr-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212]" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                                <div>
+                                  <span className="text-xs text-[#121212]">TIME WINDOW</span>
+                                  <div className="font-medium">
+                                    {formatTime(log.startTime)}
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="inline-block h-3 w-3 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                    </svg>
+                                    {formatTime(log.endTime)}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center text-sm text-[#121212]">
+                                <div className="bg-gray-100 p-1.5 rounded-md mr-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212]" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                                <div>
+                                  <span className="text-xs text-[#121212]">LOCATION</span>
+                                  <div className="font-medium">{log.currentLocation}</div>
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-xs text-[#121212]">LOCATION</span>
-                              <div className="font-medium">{log.currentLocation}</div>
-                            </div>
+
+                            {log.remarks && (
+                              <div className="mt-4 bg-gray-100 p-3 rounded-md text-sm text-[#121212] border border-gray-200">
+                                <div className="flex">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#121212] mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>{log.remarks}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        
-                        {log.remarks && (
-                          <div className="mt-4 bg-gray-100 p-3 rounded-md text-sm text-[#121212] border border-gray-200">
-                            <div className="flex">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#121212] mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                              </svg>
-                              <span>{log.remarks}</span>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-                  )
+                );
               })}
             </div>
           )}
