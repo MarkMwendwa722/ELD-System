@@ -1,12 +1,8 @@
 {
   "folders": [
     {
-      "name": "Root",
-      "path": "."
-    },
-    {
       "name": "Django Backend",
-      "path": "./eldspotter/backend"
+      "path": "./packages/backend-django"
     },
     {
       "name": "TypeScript Backend",
@@ -18,8 +14,8 @@
     }
   ],
   "settings": {
-    "python.defaultInterpreterPath": "./eldspotter/backend/venv/Scripts/python.exe",
-    "python.analysis.extraPaths": ["./eldspotter/backend"],
+    "python.defaultInterpreterPath": "./packages/backend-django/venv/Scripts/python.exe",
+    "python.analysis.extraPaths": ["./packages/backend-django"],
     "python.terminal.activateEnvironment": true,
     "typescript.preferences.includePackageJsonAutoImports": "auto",
     "eslint.workingDirectories": [

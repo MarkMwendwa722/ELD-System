@@ -1,0 +1,128 @@
+/* Spotter Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseSpotter {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 78, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 59, 78, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 78, 0);
+  }
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Custom animation classes */
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.animate-slideInLeft {
+  animation: slideInFromLeft 0.8s ease forwards;
+}
+
+.animate-slideInRight {
+  animation: slideInFromRight 0.8s ease forwards;
+}
+
+.animate-pulse-spotter {
+  animation: pulseSpotter 2s infinite;
+}
+
+.animate-float {
+  animation: floatUp 3s ease-in-out infinite;
+}
+
+/* Staggered delay classes */
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+}
+
+.delay-400 {
+  animation-delay: 0.4s;
+}
+
+.delay-500 {
+  animation-delay: 0.5s;
+}
+
+/* Transition effects */
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+/* Hover effects */
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-brightness:hover {
+  filter: brightness(1.1);
+}
+
+/* Spotter brand colors as utility classes */
+.bg-spotter-dark {
+  background-color: #0A2233;
+}
+
+.bg-spotter-medium {
+  background-color: #1A4D63;
+}
+
+.bg-spotter-accent {
+  background-color: #FF3B4E;
+}
+
+.text-spotter-light {
+  color: #E8EDF0;
+}

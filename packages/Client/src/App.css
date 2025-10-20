@@ -73,3 +73,61 @@ input, textarea, select {
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Custom Map Marker Styles */
+.custom-marker {
+  position: relative;
+}
+
+.custom-marker::before {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  animation: markerPulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+.pickup-marker::before {
+  background: rgba(37, 99, 235, 0.3);
+  left: 0;
+  bottom: 0;
+  transform: rotate(45deg);
+}
+
+.dropoff-marker::before {
+  background: rgba(239, 68, 68, 0.3);
+  left: 0;
+  bottom: 0;
+  transform: rotate(45deg);
+}
+
+@keyframes markerPulse {
+  0% {
+    transform: scale(1) rotate(45deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5) rotate(45deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2) rotate(45deg);
+    opacity: 0;
+  }
+}
+
+/* Marker bounce animation on load */
+@keyframes markerBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.custom-marker {
+  animation: markerBounce 0.6s ease-out;
+}

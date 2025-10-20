@@ -6,7 +6,11 @@ import './output.css'
 // @ts-ignore: allow importing CSS without type declarations
 import './styles/animations.css'
 // @ts-ignore: allow importing CSS without type declarations
+import './styles/spotter-animations.css'
+// @ts-ignore: allow importing CSS without type declarations
 import './maplibre-gl.css'
+// @ts-ignore: allow importing CSS without type declarations
+import './css/input-fixes.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

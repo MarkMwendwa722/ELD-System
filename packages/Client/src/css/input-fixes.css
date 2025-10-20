@@ -1,0 +1,60 @@
+/* Enhance the date picker appearance */
+input[type="date"] {
+  position: relative;
+}
+
+/* Remove default calendar icon styles but keep functionality */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* Hide clear button in Microsoft Edge */
+input[type="date"]::-ms-clear {
+  display: none;
+}
+
+/* For Firefox and other browsers */
+input[type="date"] {
+  appearance: textfield;
+  -webkit-appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* Custom styling for date inputs */
+.custom-date-input {
+  position: relative;
+  width: 100%;
+}
+
+.custom-date-input input[type="date"] {
+  width: 100%;
+  padding-right: 2.5rem; /* Space for our custom icon */
+  cursor: pointer;
+}
+
+.custom-date-input-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none; /* Allow clicks to go through to the input */
+  z-index: 1;
+}
+
+/* Enhance the calendar appearance in dark mode */
+::-webkit-calendar-picker-indicator {
+  filter: invert(0.5); /* Makes the calendar icon darker */
+  color-scheme: light;
+}
+
+/* Style the date picker dropdown */
+input[type="date"]:focus {
+  color-scheme: light;
+}

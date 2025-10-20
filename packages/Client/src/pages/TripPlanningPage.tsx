@@ -3,9 +3,6 @@ import RouteDisplayPage from './RouteDisplayPage';
 import EnhancedMap from '../components/EnhancedMap';
 import { format } from 'date-fns';
 import { 
-  getCurrentLocation, 
-  getCurrentLocationWithPermission,
-  reverseGeocode, 
   getLocationSuggestions, 
   geocodeAddress,
   createELDLog,
@@ -17,8 +14,6 @@ type ActivityStatus = 'off-duty' | 'sleeper-berth' | 'driving' | 'on-duty-not-dr
 
 interface TripDetails {
   currentLocation: string;
-  pickupLocation: string;
-  dropoffLocation: string;
   activityStatus: ActivityStatus;
   remarks?: string;
   startTime: string;
@@ -26,98 +21,74 @@ interface TripDetails {
   currentCycleUsed: number;
 }
 
+interface ActivityEntry extends TripDetails {
+  id: string;
+  currentLocationCoords?: [number, number];
+}
+
 export default function TripPlanningPage() {
+  // Daily log state - all activities must be for the same date
+  const [logDate, setLogDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [activities, setActivities] = useState<ActivityEntry[]>([]);
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  
+  // Daily departure and destination (entered once for the whole day)
+  const [dailyDeparture, setDailyDeparture] = useState<string>('');
+  const [dailyDestination, setDailyDestination] = useState<string>('');
+  const [departureCoordinates, setDepartureCoordinates] = useState<[number, number] | null>(null);
+  const [destinationCoordinates, setDestinationCoordinates] = useState<[number, number] | null>(null);
+  
   const [formData, setFormData] = useState<TripDetails>({
     currentLocation: '',
-    pickupLocation: '',
-    dropoffLocation: '',
     activityStatus: 'off-duty',
     remarks: '',
-    startTime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-    endTime: format(new Date(Date.now() + 30 * 60000), "yyyy-MM-dd'T'HH:mm"), // Default to 30 minutes later
+    startTime: format(new Date(), 'HH:mm'),
+    endTime: format(new Date(Date.now() + 30 * 60000), 'HH:mm'),
     currentCycleUsed: 0
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof TripDetails, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
+  const [showMap, setShowMap] = useState(false); // Control map visibility
+  const [dailyLogSubmitted, setDailyLogSubmitted] = useState(false); // Track if entire daily log was submitted
   
   // State for coordinates and location-related data
-  const [pickupCoordinates, setPickupCoordinates] = useState<[number, number] | null>(null);
-  const [dropoffCoordinates, setDropoffCoordinates] = useState<[number, number] | null>(null);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | 'unsupported'>('prompt');
-  const [locationError, setLocationError] = useState<string>('');
-  const [pickupSuggestions, setPickupSuggestions] = useState<LocationSuggestion[]>([]);
-  const [dropoffSuggestions, setDropoffSuggestions] = useState<LocationSuggestion[]>([]);
-  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
-  const [showDropoffSuggestions, setShowDropoffSuggestions] = useState(false);
+  const [currentLocationCoords, setCurrentLocationCoords] = useState<[number, number] | null>(null);
+  const [departureSuggestions, setDepartureSuggestions] = useState<LocationSuggestion[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<LocationSuggestion[]>([]);
+  const [currentLocationSuggestions, setCurrentLocationSuggestions] = useState<LocationSuggestion[]>([]);
+  const [showDepartureSuggestions, setShowDepartureSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [showCurrentLocationSuggestions, setShowCurrentLocationSuggestions] = useState(false);
   
   // Refs for detecting clicks outside suggestion lists
-  const pickupSuggestionsRef = useRef<HTMLDivElement>(null);
-  const dropoffSuggestionsRef = useRef<HTMLDivElement>(null);;
+  const departureSuggestionsRef = useRef<HTMLDivElement>(null);
+  const destinationSuggestionsRef = useRef<HTMLDivElement>(null);
+  const currentLocationSuggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Get current location when component mounts with improved error handling
+  // Add click handler to close suggestion dropdowns when clicking outside
   useEffect(() => {
-    const getUserLocation = async () => {
-      try {
-        setIsLoadingLocation(true);
-        setLocationError('');
-        
-        // Use the enhanced location function with permission checking
-        const result = await getCurrentLocationWithPermission();
-        
-        setLocationPermission(result.permission);
-        
-        if (result.coordinates) {
-          setPickupCoordinates(result.coordinates);
-          
-          // Reverse geocode to get address
-          try {
-            const address = await reverseGeocode(result.coordinates);
-            setFormData(prev => ({
-              ...prev,
-              pickupLocation: address,
-              currentLocation: address // Also set as current location
-            }));
-          } catch (geocodeError) {
-            console.warn('Failed to reverse geocode:', geocodeError);
-            // Still set coordinates even if reverse geocoding fails
-            setFormData(prev => ({
-              ...prev,
-              pickupLocation: `${result.coordinates![1].toFixed(6)}, ${result.coordinates![0].toFixed(6)}`,
-              currentLocation: `${result.coordinates![1].toFixed(6)}, ${result.coordinates![0].toFixed(6)}`
-            }));
-          }
-        } else if (result.error) {
-          setLocationError(result.error);
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unable to get your location';
-        setLocationError(errorMessage);
-        console.error('Error getting user location:', error);
-      } finally {
-        setIsLoadingLocation(false);
-      }
-    };
-    
-    // Only attempt to get location automatically on first load
-    getUserLocation();
-    
-    // Add click handler to close suggestion dropdowns when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        pickupSuggestionsRef.current && 
-        !pickupSuggestionsRef.current.contains(event.target as Node)
+        departureSuggestionsRef.current && 
+        !departureSuggestionsRef.current.contains(event.target as Node)
       ) {
-        setShowPickupSuggestions(false);
+        setShowDepartureSuggestions(false);
       }
       
       if (
-        dropoffSuggestionsRef.current && 
-        !dropoffSuggestionsRef.current.contains(event.target as Node)
+        destinationSuggestionsRef.current && 
+        !destinationSuggestionsRef.current.contains(event.target as Node)
       ) {
-        setShowDropoffSuggestions(false);
+        setShowDestinationSuggestions(false);
+      }
+      
+      if (
+        currentLocationSuggestionsRef.current && 
+        !currentLocationSuggestionsRef.current.contains(event.target as Node)
+      ) {
+        setShowCurrentLocationSuggestions(false);
       }
     };
     
@@ -129,7 +100,7 @@ export default function TripPlanningPage() {
   }, []);
 
   // Handle form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -151,79 +122,85 @@ export default function TripPlanningPage() {
       }
     }
     
-    // Handle location input changes for suggestions
-    if (name === 'pickupLocation') {
-      handlePickupInputChange(value);
-    } else if (name === 'dropoffLocation') {
-      handleDropoffInputChange(value);
+    // Handle current location suggestions
+    if (name === 'currentLocation' && value.length >= 3) {
+      try {
+        const suggestions = await getLocationSuggestions(value);
+        setCurrentLocationSuggestions(suggestions);
+        setShowCurrentLocationSuggestions(true);
+      } catch (error) {
+        console.error('Error getting current location suggestions:', error);
+      }
+    } else if (name === 'currentLocation') {
+      setCurrentLocationSuggestions([]);
+      setShowCurrentLocationSuggestions(false);
     }
   };
   
-  // Handle pickup location input for suggestions
-  const handlePickupInputChange = async (value: string) => {
+  // Handle departure location input for suggestions
+  const handleDepartureInputChange = async (value: string) => {
+    setDailyDeparture(value);
     if (value.length >= 3) {
       try {
         const suggestions = await getLocationSuggestions(value);
-        setPickupSuggestions(suggestions);
-        setShowPickupSuggestions(true);
+        setDepartureSuggestions(suggestions);
+        setShowDepartureSuggestions(true);
       } catch (error) {
-        console.error('Error getting pickup suggestions:', error);
+        console.error('Error getting departure suggestions:', error);
       }
     } else {
-      setPickupSuggestions([]);
-      setShowPickupSuggestions(false);
+      setDepartureSuggestions([]);
+      setShowDepartureSuggestions(false);
     }
   };
   
-  // Handle dropoff location input for suggestions
-  const handleDropoffInputChange = async (value: string) => {
+  // Handle destination location input for suggestions
+  const handleDestinationInputChange = async (value: string) => {
+    setDailyDestination(value);
     if (value.length >= 3) {
       try {
         const suggestions = await getLocationSuggestions(value);
-        setDropoffSuggestions(suggestions);
-        setShowDropoffSuggestions(true);
+        setDestinationSuggestions(suggestions);
+        setShowDestinationSuggestions(true);
       } catch (error) {
-        console.error('Error getting dropoff suggestions:', error);
+        console.error('Error getting destination suggestions:', error);
       }
     } else {
-      setDropoffSuggestions([]);
-      setShowDropoffSuggestions(false);
+      setDestinationSuggestions([]);
+      setShowDestinationSuggestions(false);
     }
   };
   
-  // Handle selection of a location suggestion for pickup
-  const handlePickupSuggestionSelect = (suggestion: LocationSuggestion) => {
-    setFormData(prev => ({
-      ...prev,
-      pickupLocation: suggestion.fullAddress || suggestion.name
-    }));
-    setPickupCoordinates(suggestion.coordinates);
-    setShowPickupSuggestions(false);
+  // Handle selection of a location suggestion for departure
+  const handleDepartureSuggestionSelect = (suggestion: LocationSuggestion) => {
+    setDailyDeparture(suggestion.fullAddress || suggestion.name);
+    setDepartureCoordinates(suggestion.coordinates);
+    setShowDepartureSuggestions(false);
   };
   
-  // Handle selection of a location suggestion for dropoff
-  const handleDropoffSuggestionSelect = (suggestion: LocationSuggestion) => {
+  // Handle selection of a location suggestion for destination
+  const handleDestinationSuggestionSelect = (suggestion: LocationSuggestion) => {
+    setDailyDestination(suggestion.fullAddress || suggestion.name);
+    setDestinationCoordinates(suggestion.coordinates);
+    setShowDestinationSuggestions(false);
+  };
+  
+  // Handle selection of a location suggestion for current location
+  const handleCurrentLocationSuggestionSelect = (suggestion: LocationSuggestion) => {
     setFormData(prev => ({
       ...prev,
-      dropoffLocation: suggestion.fullAddress || suggestion.name
+      currentLocation: suggestion.fullAddress || suggestion.name
     }));
-    setDropoffCoordinates(suggestion.coordinates);
-    setShowDropoffSuggestions(false);
+    setCurrentLocationCoords(suggestion.coordinates);
+    setShowCurrentLocationSuggestions(false);
   };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof TripDetails, string>> = {};
 
+    // Current location is required for ELD compliance
     if (!formData.currentLocation.trim()) {
-      newErrors.currentLocation = 'Current location is required';
-    }
-
-    if (!formData.pickupLocation.trim()) {
-      newErrors.pickupLocation = 'Pickup location is required';
-    }
-
-    if (!formData.dropoffLocation.trim()) {
-      newErrors.dropoffLocation = 'Dropoff location is required';
+      newErrors.currentLocation = 'Current location is required for ELD compliance';
     }
 
     if (!formData.startTime) {
@@ -235,7 +212,7 @@ export default function TripPlanningPage() {
     }
 
     // Check if end time is after start time
-    if (formData.startTime && formData.endTime && new Date(formData.endTime) <= new Date(formData.startTime)) {
+    if (formData.startTime && formData.endTime && formData.endTime <= formData.startTime) {
       newErrors.endTime = 'End time must be after start time';
     }
 
@@ -248,82 +225,169 @@ export default function TripPlanningPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Add activity to the list (like adding education in CV)
+  const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
       setIsSubmitting(true);
       
       try {
-        // If coordinates are not yet set, try to geocode the addresses
-        if (!pickupCoordinates && formData.pickupLocation) {
-          try {
-            const coordinates = await geocodeAddress(formData.pickupLocation);
-            setPickupCoordinates(coordinates);
-          } catch (error) {
-            console.error('Error geocoding pickup location:', error);
-            throw new Error('Could not find coordinates for pickup location.');
-          }
-        }
-        
-        if (!dropoffCoordinates && formData.dropoffLocation) {
-          try {
-            const coordinates = await geocodeAddress(formData.dropoffLocation);
-            setDropoffCoordinates(coordinates);
-          } catch (error) {
-            console.error('Error geocoding dropoff location:', error);
-            throw new Error('Could not find coordinates for dropoff location.');
-          }
-        }
-        
-        console.log('Trip Details:', {
+        // Create activity entry
+        const activityEntry: ActivityEntry = {
+          id: editingActivityId || `activity-${Date.now()}`,
           ...formData,
-          pickupCoordinates,
-          dropoffCoordinates
-        });
-        
-        // Create ELD log entry
-        try {
-          const eldLogData: ELDLogData = {
-            driver_username: 'default_driver', // In production, get from authentication
-            driver_first_name: 'Driver',
-            driver_last_name: 'User',
-            driver_email: 'driver@example.com',
-            activityStatus: formData.activityStatus,
-            currentLocation: formData.currentLocation,
-            currentLatitude: pickupCoordinates ? pickupCoordinates[1] : undefined, // Assuming current location matches pickup for now
-            currentLongitude: pickupCoordinates ? pickupCoordinates[0] : undefined,
-            pickupLocation: formData.pickupLocation,
-            pickupLatitude: pickupCoordinates ? pickupCoordinates[1] : undefined,
-            pickupLongitude: pickupCoordinates ? pickupCoordinates[0] : undefined,
-            dropoffLocation: formData.dropoffLocation,
-            dropoffLatitude: dropoffCoordinates ? dropoffCoordinates[1] : undefined,
-            dropoffLongitude: dropoffCoordinates ? dropoffCoordinates[0] : undefined,
-            startTime: formData.startTime,
-            endTime: formData.endTime,
-            remarks: formData.remarks,
-            currentCycleUsed: formData.currentCycleUsed
-          };
+          currentLocationCoords: currentLocationCoords || undefined
+        };
 
-          const logResponse = await createELDLog(eldLogData);
-          console.log('ELD Log created:', logResponse);
-          
-        } catch (eldError) {
-          console.error('Error creating ELD log:', eldError);
-          // Don't block the user flow, but log the error
-          alert('Trip planned successfully, but there was an issue saving the ELD log. Please contact support if this persists.');
+        if (editingActivityId) {
+          // Update existing activity
+          setActivities(prev => prev.map(act => 
+            act.id === editingActivityId ? activityEntry : act
+          ));
+          setEditingActivityId(null);
+          alert('Activity updated successfully!');
+        } else {
+          // Add new activity
+          setActivities(prev => [...prev, activityEntry]);
+          alert('Activity added successfully! Add more activities or submit the daily log.');
         }
         
-        // Navigate to route display page
-        setShowRoute(true);
+        // Reset form for next activity
+        const [hours, minutes] = formData.endTime.split(':');
+        const endDate = new Date();
+        endDate.setHours(parseInt(hours), parseInt(minutes));
+        const nextEndDate = new Date(endDate.getTime() + 30 * 60000);
+        
+        setFormData({
+          currentLocation: '',
+          activityStatus: 'off-duty',
+          remarks: '',
+          startTime: formData.endTime, // Next activity starts when previous ended
+          endTime: format(nextEndDate, 'HH:mm'),
+          currentCycleUsed: 0
+        });
+        setShowMap(true); // Show map with all activities
         
       } catch (error) {
-        console.error('Error planning trip:', error);
-        alert(error instanceof Error ? error.message : 'Error planning trip. Please try again.');
+        console.error('Error adding activity:', error);
+        alert(error instanceof Error ? error.message : 'Error adding activity. Please try again.');
       } finally {
         setIsSubmitting(false);
       }
     }
+  };
+
+  // Submit entire daily log to backend
+  const handleSubmitDailyLog = async () => {
+    if (activities.length === 0) {
+      alert('Please add at least one activity before submitting the daily log.');
+      return;
+    }
+
+    // Validate departure and destination
+    if (!dailyDeparture.trim()) {
+      alert('Please enter a departure location before submitting the daily log.');
+      return;
+    }
+
+    if (!dailyDestination.trim()) {
+      alert('Please enter a destination before submitting the daily log.');
+      return;
+    }
+
+    // Geocode departure and destination if not already done
+    let finalDepartureCoords = departureCoordinates;
+    let finalDestinationCoords = destinationCoordinates;
+
+    try {
+      if (!finalDepartureCoords) {
+        finalDepartureCoords = await geocodeAddress(dailyDeparture);
+        setDepartureCoordinates(finalDepartureCoords);
+      }
+
+      if (!finalDestinationCoords) {
+        finalDestinationCoords = await geocodeAddress(dailyDestination);
+        setDestinationCoordinates(finalDestinationCoords);
+      }
+    } catch (error) {
+      alert('Could not find coordinates for departure or destination. Please check the addresses.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Submit all activities to backend
+      for (const activity of activities) {
+        // Combine date and time for full datetime
+        const startDateTime = `${logDate}T${activity.startTime}:00`;
+        const endDateTime = `${logDate}T${activity.endTime}:00`;
+        
+        const eldLogData: ELDLogData = {
+          driver_username: 'default_driver', // TODO: Get from authentication
+          driver_first_name: 'Driver',
+          driver_last_name: 'User',
+          driver_email: 'driver@example.com',
+          activityStatus: activity.activityStatus,
+          currentLocation: activity.currentLocation,
+          currentLatitude: activity.currentLocationCoords ? activity.currentLocationCoords[1] : undefined,
+          currentLongitude: activity.currentLocationCoords ? activity.currentLocationCoords[0] : undefined,
+          pickupLocation: dailyDeparture,
+          pickupLatitude: finalDepartureCoords[1],
+          pickupLongitude: finalDepartureCoords[0],
+          dropoffLocation: dailyDestination,
+          dropoffLatitude: finalDestinationCoords[1],
+          dropoffLongitude: finalDestinationCoords[0],
+          startTime: startDateTime,
+          endTime: endDateTime,
+          remarks: activity.remarks,
+          currentCycleUsed: activity.currentCycleUsed
+        };
+
+        await createELDLog(eldLogData);
+      }
+      
+      setDailyLogSubmitted(true);
+      alert(`Daily log for ${format(new Date(logDate), 'MMM dd, yyyy')} submitted successfully! ${activities.length} activities recorded.`);
+      
+      // Optionally reset for next day
+      // setActivities([]);
+      // setLogDate(format(new Date(), 'yyyy-MM-dd'));
+      
+    } catch (error) {
+      console.error('Error submitting daily log:', error);
+      alert('Error submitting daily log. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Delete activity from list
+  const handleDeleteActivity = (activityId: string) => {
+    if (confirm('Are you sure you want to delete this activity?')) {
+      setActivities(prev => prev.filter(act => act.id !== activityId));
+    }
+  };
+
+  // Edit activity
+  const handleEditActivity = (activity: ActivityEntry) => {
+    setFormData({
+      currentLocation: activity.currentLocation,
+      activityStatus: activity.activityStatus,
+      remarks: activity.remarks || '',
+      startTime: activity.startTime,
+      endTime: activity.endTime,
+      currentCycleUsed: activity.currentCycleUsed
+    });
+    setCurrentLocationCoords(activity.currentLocationCoords || null);
+    setEditingActivityId(activity.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleAddActivity(e);
   };
 
   // Note: ELD compliance functionality has been removed as per requirements
@@ -332,17 +396,12 @@ export default function TripPlanningPage() {
   if (showRoute) {
     return (
       <RouteDisplayPage 
-        tripData={formData} 
-        onBack={() => setShowRoute(false)} 
-      />
-    );
-  }
-
-  // Show route display if trip has been planned
-  if (showRoute) {
-    return (
-      <RouteDisplayPage 
-        tripData={formData} 
+        tripData={{
+          currentLocation: formData.currentLocation,
+          pickupLocation: dailyDeparture,
+          dropoffLocation: dailyDestination,
+          currentCycleUsed: formData.currentCycleUsed
+        }} 
         onBack={() => setShowRoute(false)} 
       />
     );
@@ -360,230 +419,276 @@ export default function TripPlanningPage() {
           </h1>
         </div>
         <p className="text-slate-600 text-xl font-medium m-0">
-          Professional Route Planning & ELD Compliance Management
+          Electronic Logging Device - Driver Activity Management
         </p>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-8 pb-8 sm:pb-16">
         <div className="text-center mb-6 sm:mb-10 text-slate-700">
-          <h2 className="text-2xl sm:text-4xl font-bold mb-2">Trip Planning</h2>
-          <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">
-            Enter your trip details to get optimized route instructions
+          <h2 className="text-2xl sm:text-4xl font-bold mb-2">Driver Activity Log</h2>
+          <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-4">
+            Record your driving activity for ELD compliance
           </p>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+            </svg>
+            View 24-Hour Dashboard
+          </a>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Location Information Section */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Route Information</h3>
+        {/* Date Selector for Daily Log */}
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Daily Activity Log Date</h3>
+              <p className="text-sm text-gray-600 mt-1">All activities must be for this date</p>
+            </div>
+            <input
+              type="date"
+              value={logDate}
+              onChange={(e) => {
+                if (activities.length > 0 && !confirm('Changing the date will clear all current activities. Continue?')) {
+                  return;
+                }
+                setLogDate(e.target.value);
+                setActivities([]);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-lg font-semibold"
+              disabled={dailyLogSubmitted}
+            />
+          </div>
+        </div>
+
+        {/* Departure and Destination - Entered once for the entire day */}
+        {!dailyLogSubmitted && (
+          <div className="bg-white shadow rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Daily Route - Departure & Destination
+              <span className="text-red-500 ml-1">*</span>
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">Enter the starting point and final destination for today's activities</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Pickup Location */}
+              {/* Departure Location */}
               <div className="relative">
-                <label htmlFor="pickupLocation" className="flex items-center text-sm font-medium text-gray-700 mb-1">
-                  <span>Pickup Location</span>
-                  {isLoadingLocation && (
-                    <div className="ml-2 w-4 h-4 border-2 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
-                  )}
+                <label htmlFor="dailyDeparture" className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <span>Departure (Starting Point) <span className="text-red-500">*</span></span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    id="pickupLocation"
-                    name="pickupLocation"
-                    value={formData.pickupLocation}
-                    onChange={handleChange}
-                    onFocus={() => setShowPickupSuggestions(pickupSuggestions.length > 0)}
+                    id="dailyDeparture"
+                    value={dailyDeparture}
+                    onChange={(e) => handleDepartureInputChange(e.target.value)}
+                    onFocus={() => setShowDepartureSuggestions(departureSuggestions.length > 0)}
                     className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter pickup address"
+                    placeholder="Enter departure address"
+                    required
                   />
-                  <button 
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        setIsLoadingLocation(true);
-                        setLocationError('');
-                        
-                        const result = await getCurrentLocationWithPermission();
-                        setLocationPermission(result.permission);
-                        
-                        if (result.coordinates) {
-                          setPickupCoordinates(result.coordinates);
-                          
-                          try {
-                            const address = await reverseGeocode(result.coordinates);
-                            setFormData(prev => ({
-                              ...prev,
-                              pickupLocation: address
-                            }));
-                          } catch (geocodeError) {
-                            console.warn('Failed to reverse geocode:', geocodeError);
-                            // Still set coordinates even if reverse geocoding fails
-                            setFormData(prev => ({
-                              ...prev,
-                              pickupLocation: `${result.coordinates![1].toFixed(6)}, ${result.coordinates![0].toFixed(6)}`
-                            }));
-                          }
-                        } else if (result.error) {
-                          setLocationError(result.error);
-                        }
-                      } catch (error) {
-                        const errorMessage = error instanceof Error ? error.message : 'Could not get your location. Please enter it manually.';
-                        setLocationError(errorMessage);
-                        console.error('Error getting location:', error);
-                      } finally {
-                        setIsLoadingLocation(false);
-                      }
-                    }}
-                    disabled={isLoadingLocation || locationPermission === 'denied'}
-                    className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded ${
-                      isLoadingLocation 
-                        ? 'text-gray-400 cursor-not-allowed' 
-                        : locationPermission === 'denied'
-                        ? 'text-red-400 cursor-not-allowed'
-                        : pickupCoordinates 
-                        ? 'text-green-600 hover:text-green-800' 
-                        : 'text-blue-600 hover:text-blue-800'
-                    } transition-colors`}
-                    title={
-                      locationPermission === 'denied' 
-                        ? 'Location access denied - Please enable in browser settings'
-                        : isLoadingLocation 
-                        ? 'Getting your location...'
-                        : pickupCoordinates 
-                        ? 'Update location'
-                        : 'Use current location'
-                    }
+                  {showDepartureSuggestions && departureSuggestions.length > 0 && (
+                    <div 
+                      ref={departureSuggestionsRef}
+                      className="absolute z-10 w-full mt-1 bg-white shadow-lg max-h-60 rounded-md overflow-auto"
+                    >
+                      <ul className="py-1">
+                        {departureSuggestions.map((suggestion, index) => (
+                          <li 
+                            key={index} 
+                            className="px-4 py-2 hover:bg-blue-100 cursor-pointer"
+                            onClick={() => handleDepartureSuggestionSelect(suggestion)}
+                          >
+                            {suggestion.fullAddress || suggestion.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Destination */}
+              <div className="relative">
+                <label htmlFor="dailyDestination" className="block text-sm font-medium text-gray-700 mb-1">
+                  Destination (Final Stop) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="dailyDestination"
+                  value={dailyDestination}
+                  onChange={(e) => handleDestinationInputChange(e.target.value)}
+                  onFocus={() => setShowDestinationSuggestions(destinationSuggestions.length > 0)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter destination address"
+                  required
+                />
+                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                  <div 
+                    ref={destinationSuggestionsRef}
+                    className="absolute z-10 w-full mt-1 bg-white shadow-lg max-h-60 rounded-md overflow-auto"
                   >
-                    {isLoadingLocation ? (
-                      <svg className="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <ul className="py-1">
+                      {destinationSuggestions.map((suggestion, index) => (
+                        <li 
+                          key={index} 
+                          className="px-4 py-2 hover:bg-blue-100 cursor-pointer"
+                          onClick={() => handleDestinationSuggestionSelect(suggestion)}
+                        >
+                          {suggestion.fullAddress || suggestion.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Activity Timeline - Show added activities */}
+        {activities.length > 0 && (
+          <div className="bg-white shadow rounded-lg p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Activities for {format(new Date(logDate), 'MMMM dd, yyyy')}
+                <span className="ml-2 text-sm font-normal text-gray-600">({activities.length} {activities.length === 1 ? 'activity' : 'activities'})</span>
+              </h3>
+              {!dailyLogSubmitted && (
+                <button
+                  type="button"
+                  onClick={handleSubmitDailyLog}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                    ) : locationPermission === 'denied' ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
-                      </svg>
-                    ) : pickupCoordinates ? (
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                {showPickupSuggestions && pickupSuggestions.length > 0 && (
-                  <div 
-                    ref={pickupSuggestionsRef}
-                    className="absolute z-10 w-full mt-1 bg-white shadow-lg max-h-60 rounded-md overflow-auto"
-                  >
-                    <ul className="py-1">
-                      {pickupSuggestions.map((suggestion, index) => (
-                        <li 
-                          key={index} 
-                          className="px-4 py-2 hover:bg-blue-100 cursor-pointer"
-                          onClick={() => handlePickupSuggestionSelect(suggestion)}
-                        >
-                          {suggestion.fullAddress || suggestion.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {errors.pickupLocation && (
-                  <p className="text-red-600 text-sm mt-1">{errors.pickupLocation}</p>
-                )}
-                {locationError && (
-                  <div className="bg-amber-50 border-l-4 border-amber-400 p-3 mt-2 rounded">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
+                      Submit Daily Log
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            
+            {/* Activity Timeline */}
+            <div className="space-y-3">
+              {activities.map((activity, index) => (
+                <div key={activity.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
+                          {index + 1}
+                        </span>
+                        <div>
+                          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                            activity.activityStatus === 'driving' ? 'bg-green-100 text-green-800' :
+                            activity.activityStatus === 'on-duty-not-driving' ? 'bg-yellow-100 text-yellow-800' :
+                            activity.activityStatus === 'off-duty' ? 'bg-gray-100 text-gray-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {activity.activityStatus.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {activity.startTime} - {activity.endTime}
+                        </div>
                       </div>
-                      <div className="ml-3">
-                        <p className="text-sm text-amber-700">{locationError}</p>
-                        {locationPermission === 'denied' && (
-                          <p className="text-xs text-amber-600 mt-1">
-                            To enable location access: Click the location icon in your browser's address bar and allow location permissions.
-                          </p>
+                      <div className="ml-11 space-y-1 text-sm text-gray-700">
+                        {activity.currentLocation && (
+                          <div className="flex items-start gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                            </svg>
+                            <span><strong>Location:</strong> {activity.currentLocation}</span>
+                          </div>
+                        )}
+                        {activity.remarks && (
+                          <div className="flex items-start gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                            <span><strong>Note:</strong> {activity.remarks}</span>
+                          </div>
                         )}
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Dropoff Location */}
-              <div className="relative">
-                <label htmlFor="dropoffLocation" className="block text-sm font-medium text-gray-700 mb-1">Dropoff Location</label>
-                <input
-                  type="text"
-                  id="dropoffLocation"
-                  name="dropoffLocation"
-                  value={formData.dropoffLocation}
-                  onChange={handleChange}
-                  onFocus={() => setShowDropoffSuggestions(dropoffSuggestions.length > 0)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter destination address"
-                />
-                {showDropoffSuggestions && dropoffSuggestions.length > 0 && (
-                  <div 
-                    ref={dropoffSuggestionsRef}
-                    className="absolute z-10 w-full mt-1 bg-white shadow-lg max-h-60 rounded-md overflow-auto"
-                  >
-                    <ul className="py-1">
-                      {dropoffSuggestions.map((suggestion, index) => (
-                        <li 
-                          key={index} 
-                          className="px-4 py-2 hover:bg-blue-100 cursor-pointer"
-                          onClick={() => handleDropoffSuggestionSelect(suggestion)}
+                    {!dailyLogSubmitted && (
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          type="button"
+                          onClick={() => handleEditActivity(activity)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          title="Edit activity"
                         >
-                          {suggestion.fullAddress || suggestion.name}
-                        </li>
-                      ))}
-                    </ul>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteActivity(activity.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          title="Delete activity"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-                {errors.dropoffLocation && (
-                  <p className="text-red-600 text-sm mt-1">{errors.dropoffLocation}</p>
-                )}
-              </div>
+                </div>
+              ))}
             </div>
             
-            {/* Map Component */}
-            <div className="mt-6 h-64 border rounded-md overflow-hidden">
-              <EnhancedMap 
-                pickupCoordinates={pickupCoordinates}
-                dropoffCoordinates={dropoffCoordinates}
-                className="w-full h-full"
-                onPickupChange={(coords) => {
-                  setPickupCoordinates(coords);
-                  reverseGeocode(coords).then(address => {
-                    setFormData(prev => ({
-                      ...prev,
-                      pickupLocation: address
-                    }));
-                  });
-                }}
-                onDropoffChange={(coords) => {
-                  setDropoffCoordinates(coords);
-                  reverseGeocode(coords).then(address => {
-                    setFormData(prev => ({
-                      ...prev,
-                      dropoffLocation: address
-                    }));
-                  });
-                }}
-              />
-            </div>
+            {dailyLogSubmitted && (
+              <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4">
+                <div className="flex">
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div className="ml-3">
+                    <p className="text-sm text-green-700">
+                      Daily log submitted successfully! All {activities.length} activities have been recorded.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          
-          {/* Activity Status Section */}
-          <div className="bg-white shadow rounded-lg p-6">
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Route Information Section - Required for ELD Compliance */}
+          {!dailyLogSubmitted && (
+            <>
+              <div className="bg-white shadow rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">
+                    {editingActivityId ? 'Edit Activity' : 'Add New Activity'}
+                    <span className="text-gray-500 text-sm ml-2 font-normal">
+                      {editingActivityId ? '(Editing)' : `(Activity #${activities.length + 1})`}
+                    </span>
+                  </h3>
+                </div>
+              </div>
+
+              {/* Activity Status Section */}
+              <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-semibold mb-4">Activity Information</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -625,11 +730,8 @@ export default function TripPlanningPage() {
             
             {/* Current Location Section */}
             <div className="mb-4">
-              <label htmlFor="currentLocation" className="flex items-center text-sm font-medium text-gray-700 mb-1">
-                <span>Current Location</span>
-                {isLoadingLocation && (
-                  <div className="ml-2 w-4 h-4 border-2 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
-                )}
+              <label htmlFor="currentLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                Current Location
               </label>
               <div className="relative">
                 <input
@@ -638,107 +740,29 @@ export default function TripPlanningPage() {
                   name="currentLocation"
                   value={formData.currentLocation}
                   onChange={handleChange}
+                  onFocus={() => setShowCurrentLocationSuggestions(currentLocationSuggestions.length > 0)}
                   className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your current location"
                 />
-                <button 
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      setIsLoadingLocation(true);
-                      setLocationError('');
-                      
-                      const result = await getCurrentLocationWithPermission();
-                      setLocationPermission(result.permission);
-                      
-                      if (result.coordinates) {
-                        try {
-                          const address = await reverseGeocode(result.coordinates);
-                          setFormData(prev => ({
-                            ...prev,
-                            currentLocation: address
-                          }));
-                        } catch (geocodeError) {
-                          console.warn('Failed to reverse geocode:', geocodeError);
-                          // Still set coordinates even if reverse geocoding fails
-                          setFormData(prev => ({
-                            ...prev,
-                            currentLocation: `${result.coordinates![1].toFixed(6)}, ${result.coordinates![0].toFixed(6)}`
-                          }));
-                        }
-                      } else if (result.error) {
-                        setLocationError(result.error);
-                      }
-                    } catch (error) {
-                      const errorMessage = error instanceof Error ? error.message : 'Could not get your location. Please enter it manually.';
-                      setLocationError(errorMessage);
-                      console.error('Error getting location:', error);
-                    } finally {
-                      setIsLoadingLocation(false);
-                    }
-                  }}
-                  disabled={isLoadingLocation || locationPermission === 'denied'}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded ${
-                    isLoadingLocation 
-                      ? 'text-gray-400 cursor-not-allowed' 
-                      : locationPermission === 'denied'
-                      ? 'text-red-400 cursor-not-allowed'
-                      : formData.currentLocation 
-                      ? 'text-green-600 hover:text-green-800' 
-                      : 'text-blue-600 hover:text-blue-800'
-                  } transition-colors`}
-                  title={
-                    locationPermission === 'denied' 
-                      ? 'Location access denied - Please enable in browser settings'
-                      : isLoadingLocation 
-                      ? 'Getting your location...'
-                      : formData.currentLocation 
-                      ? 'Update current location'
-                      : 'Use current location'
-                  }
-                >
-                  {isLoadingLocation ? (
-                    <svg className="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : locationPermission === 'denied' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
-                    </svg>
-                  ) : formData.currentLocation ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-              {errors.currentLocation && (
-                <p className="text-red-600 text-sm mt-1">{errors.currentLocation}</p>
-              )}
-              {locationError && !errors.currentLocation && (
-                <div className="bg-amber-50 border-l-4 border-amber-400 p-3 mt-2 rounded">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-amber-700">{locationError}</p>
-                      {locationPermission === 'denied' && (
-                        <p className="text-xs text-amber-600 mt-1">
-                          To enable location access: Click the location icon in your browser's address bar and allow location permissions.
-                        </p>
-                      )}
-                    </div>
+                {showCurrentLocationSuggestions && currentLocationSuggestions.length > 0 && (
+                  <div 
+                    ref={currentLocationSuggestionsRef}
+                    className="absolute z-10 w-full mt-1 bg-white shadow-lg max-h-60 rounded-md overflow-auto"
+                  >
+                    <ul className="py-1">
+                      {currentLocationSuggestions.map((suggestion, index) => (
+                        <li 
+                          key={index} 
+                          className="px-4 py-2 hover:bg-blue-100 cursor-pointer"
+                          onClick={() => handleCurrentLocationSuggestionSelect(suggestion)}
+                        >
+                          {suggestion.fullAddress || suggestion.name}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
             
             {/* Time Input Section */}
@@ -746,7 +770,7 @@ export default function TripPlanningPage() {
               <div>
                 <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   id="startTime"
                   name="startTime"
                   value={formData.startTime}
@@ -761,7 +785,7 @@ export default function TripPlanningPage() {
               <div>
                 <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   id="endTime"
                   name="endTime"
                   value={formData.endTime}
@@ -776,44 +800,11 @@ export default function TripPlanningPage() {
           </div>
           
           {/* Submit Button */}
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              {isLoadingLocation ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin mr-2 h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Getting your location...
-                </span>
-              ) : locationPermission === 'denied' ? (
-                <span className="flex items-center text-amber-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  Location access denied
-                </span>
-              ) : pickupCoordinates ? (
-                <span className="flex items-center text-green-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Location detected
-                </span>
-              ) : (
-                <span className="flex items-center text-gray-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                  </svg>
-                  Enter pickup location manually or use location button
-                </span>
-              )}
-            </div>
-            
+          <div className="flex justify-end items-center">
             <button
               type="submit"
               className="px-6 py-3 bg-blue-600 text-white font-medium rounded-md shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              disabled={isSubmitting || !pickupCoordinates || !dropoffCoordinates}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
@@ -821,19 +812,53 @@ export default function TripPlanningPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Planning Trip...
+                  {editingActivityId ? 'Updating Activity...' : 'Adding Activity...'}
                 </>
               ) : (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
                   </svg>
-                  Plan Trip
+                  {editingActivityId ? 'Update Activity' : 'Add Activity'}
                 </>
               )}
             </button>
           </div>
+            </>
+          )}
         </form>
+        
+        {/* Map showing all activities */}
+        {activities.length > 0 && showMap && departureCoordinates && destinationCoordinates && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4">Route Visualization</h3>
+            <div className="h-96 border rounded-md overflow-hidden">
+              <EnhancedMap 
+                pickupCoordinates={departureCoordinates}
+                dropoffCoordinates={destinationCoordinates}
+                className="w-full h-full"
+                onPickupChange={(coords) => setDepartureCoordinates(coords)}
+                onDropoffChange={(coords) => setDestinationCoordinates(coords)}
+                allowClickToSetPickup={false}
+                allowClickToSetDropoff={false}
+              />
+            </div>
+            <div className="mt-4 text-sm text-gray-700">
+              <p className="font-medium">Map Legend:</p>
+              <div className="flex flex-wrap gap-4 mt-2">
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-blue-600 rounded-full mr-2"></div>
+                  <span>Departure (Starting Point)</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
+                  <span>Destination (Final Point)</span>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">Markers can be dragged to adjust locations. The blue line shows the suggested route.</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,7 +2,9 @@
 import axios from 'axios';
 
 // Base URL for backend API
-const API_BASE_URL = 'http://localhost:5000/api';
+// In development: Uses Vite proxy (/api/django) -> http://localhost:8000
+// The proxy strips /api/django, so we add /api to reach Django's routes
+const API_BASE_URL = 'http://localhost:8000/api';
 
 // Interface for location suggestions
 export interface LocationSuggestion {
@@ -219,12 +221,12 @@ export interface ELDLogData {
   currentLocation: string;
   currentLatitude?: number;
   currentLongitude?: number;
-  pickupLocation?: string;
-  pickupLatitude?: number;
-  pickupLongitude?: number;
-  dropoffLocation?: string;
-  dropoffLatitude?: number;
-  dropoffLongitude?: number;
+  pickupLocation: string; // Required for ELD compliance
+  pickupLatitude: number; // Required for ELD compliance
+  pickupLongitude: number; // Required for ELD compliance
+  dropoffLocation: string; // Required for ELD compliance
+  dropoffLatitude: number; // Required for ELD compliance
+  dropoffLongitude: number; // Required for ELD compliance
   startTime: string;
   endTime?: string;
   remarks?: string;
@@ -232,6 +234,34 @@ export interface ELDLogData {
   odometerReading?: number;
   engineHours?: number;
   vehicleId?: string;
+}
+
+// ELD Log response interface (what we get back from the server)
+export interface ELDLogResponse {
+  id: number;
+  driver_username: string;
+  driver_first_name: string;
+  driver_last_name: string;
+  driver_email: string;
+  activityStatus: 'off-duty' | 'sleeper-berth' | 'driving' | 'on-duty-not-driving';
+  currentLocation: string;
+  currentLatitude?: number;
+  currentLongitude?: number;
+  pickupLocation?: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  dropoffLocation?: string;
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  startTime: string;
+  endTime: string;
+  remarks?: string;
+  currentCycleUsed: number;
+  odometerReading?: number;
+  engineHours?: number;
+  vehicleId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Create a new ELD log entry
@@ -245,24 +275,28 @@ export const createELDLog = async (logData: ELDLogData): Promise<{ log_id: numbe
   }
 };
 
-// Get ELD logs for a driver
+// Get ELD logs for a driver (optionally filtered by date range)
 export const getELDLogs = async (
   driverUsername: string = 'default_driver',
-  limit: number = 50,
+  startDate?: string,
+  endDate?: string,
+  limit: number = 100,
   offset: number = 0
-): Promise<{
-  logs: any[];
-  count: number;
-}> => {
+): Promise<ELDLogResponse[]> => {
   try {
-    const response = await api.get('/eld-logs/list/', {
-      params: {
-        driver_username: driverUsername,
-        limit,
-        offset
-      }
-    });
-    return response.data;
+    const params: any = {
+      driver_username: driverUsername,
+      limit,
+      offset
+    };
+
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+
+    const response = await api.get('/eld-logs/list/', { params });
+    
+    // Return just the logs array
+    return response.data.logs || response.data || [];
   } catch (error) {
     console.error('Error fetching ELD logs:', error);
     throw error;

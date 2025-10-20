@@ -6,6 +6,14 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        'spotter': {
+          'dark': '#0A2233',
+          'medium': '#1A4D63',
+          'accent': '#FF3B4E',
+          'light': '#E8EDF0',
+        },
+      },
       boxShadow: {
         '3xl': '0 35px 60px -15px rgba(0, 0, 0, 0.3)',
       },
@@ -20,6 +28,8 @@ export default {
         'fade-in': 'fadeIn 0.5s ease forwards',
         'dash': 'dash 2s ease-in-out infinite',
         'bounce-delayed': 'bounce 1s infinite',
+        'spotter-pulse': 'spotterPulse 2s infinite',
+        'float': 'float 3s ease-in-out infinite',
       },
       keyframes: {
         fadeInUp: {
@@ -56,6 +66,16 @@ export default {
         shimmer: {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
+        },
+        spotterPulse: {
+          '0%': { boxShadow: '0 0 0 0 rgba(255, 59, 78, 0.7)' },
+          '70%': { boxShadow: '0 0 0 10px rgba(255, 59, 78, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(255, 59, 78, 0)' },
+        },
+        float: {
+          '0%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+          '100%': { transform: 'translateY(0px)' },
         },
       },
     },
