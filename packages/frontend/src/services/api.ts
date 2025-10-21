@@ -2,9 +2,11 @@
 import axios from 'axios';
 
 // Base URL for backend API
+// In production: Uses /api for Vercel serverless functions
 // In development: Uses Vite proxy (/api/django) -> http://localhost:8000
-// The proxy strips /api/django, so we add /api to reach Django's routes
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.PROD 
+  ? (import.meta.env.VITE_API_BASE_URL || '/api')
+  : 'http://localhost:8000/api';
 
 // Interface for location suggestions
 export interface LocationSuggestion {

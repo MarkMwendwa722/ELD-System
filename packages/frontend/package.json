@@ -1,5 +1,5 @@
 {
-  "name": "@spotter/dev",
+  "name": "@spotter/frontend",
   "version": "1.0.0",
   "description": "Spotter React Frontend Application",
   "type": "module",

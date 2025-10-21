@@ -1,7 +1,7 @@
 {
-  "name": "@spotter/backend",
+  "name": "@spotter/local-backend",
   "version": "1.0.0",
-  "description": "Spotter TypeScript Backend API",
+  "description": "Spotter Local Development Backend (Express.js)",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -25,6 +25,7 @@
     "@types/axios": "^0.14.0",
     "@typescript-eslint/eslint-plugin": "^6.4.0",
     "@typescript-eslint/parser": "^6.4.0",
+    "@vercel/node": "^3.0.7",
     "eslint": "^8.47.0",
     "tsx": "^3.12.7",
     "typescript": "^5.1.6",
