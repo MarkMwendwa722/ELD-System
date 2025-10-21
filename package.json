@@ -29,7 +29,10 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "gh-pages": "^6.3.0",
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "gh-pages": "^6.3.0"
+  },
+  "dependencies": {
+    "react-hot-toast": "^2.6.0"
   }
 }

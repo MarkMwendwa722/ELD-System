@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 import EnhancedMap from '../components/EnhancedMap';
 import { getELDLogs, ELDLogResponse } from '../services/api';
 
@@ -63,7 +64,7 @@ export default function ELDDashboard() {
         setOffDutyTime(offDuty);
 
       } catch (error) {
-        console.error('Error fetching logs:', error);
+        toast.error('Failed to load activity logs. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -94,6 +95,24 @@ export default function ELDDashboard() {
       time: log.startTime,
       remarks: log.remarks
     }));
+
+  // Get pickup and dropoff coordinates from the first log that has them
+  const pickupCoords = logs.find(log => log.pickupLatitude && log.pickupLongitude)
+    ? [
+        parseFloat(logs.find(log => log.pickupLatitude && log.pickupLongitude)!.pickupLongitude!.toString()),
+        parseFloat(logs.find(log => log.pickupLatitude && log.pickupLongitude)!.pickupLatitude!.toString())
+      ] as [number, number]
+    : mapLocations[0]?.coordinates;
+
+  const dropoffCoords = logs.find(log => log.dropoffLatitude && log.dropoffLongitude)
+    ? [
+        parseFloat(logs.find(log => log.dropoffLatitude && log.dropoffLongitude)!.dropoffLongitude!.toString()),
+        parseFloat(logs.find(log => log.dropoffLatitude && log.dropoffLongitude)!.dropoffLatitude!.toString())
+      ] as [number, number]
+    : mapLocations[mapLocations.length - 1]?.coordinates;
+
+  const pickupLocationName = logs.find(log => log.pickupLocation)?.pickupLocation || mapLocations[0]?.location;
+  const dropoffLocationName = logs.find(log => log.dropoffLocation)?.dropoffLocation || mapLocations[mapLocations.length - 1]?.location;
 
   return (
     <div className="min-h-screen bg-white">
@@ -260,10 +279,10 @@ export default function ELDDashboard() {
             <div className="h-96 rounded-xl overflow-hidden border border-[#3D3C8E] shadow-lg relative">
               {/* Map component without location info overlay - it will be displayed below */}
               <EnhancedMap 
-                pickupCoordinates={mapLocations[0]?.coordinates}
-                dropoffCoordinates={mapLocations[mapLocations.length - 1]?.coordinates}
-                pickupLocationName={mapLocations[0]?.location}
-                dropoffLocationName={mapLocations[mapLocations.length - 1]?.location}
+                pickupCoordinates={pickupCoords}
+                dropoffCoordinates={dropoffCoords}
+                pickupLocationName={pickupLocationName}
+                dropoffLocationName={dropoffLocationName}
                 className="w-full h-full"
                 onPickupChange={() => {}}
                 onDropoffChange={() => {}}
@@ -313,7 +332,7 @@ export default function ELDDashboard() {
             </div>
             
             {/* Trip Locations Section - displayed below legend */}
-            {mapLocations.length > 0 && (
+            {pickupCoords && dropoffCoords && (
               <div className="mt-4 bg-white rounded-lg shadow-md border border-gray-200 p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Start Location */}
@@ -325,13 +344,13 @@ export default function ELDDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-blue-600 mb-1 uppercase tracking-wide text-sm">Start Location</div>
-                      {mapLocations[0]?.location && (
+                      {pickupLocationName && (
                         <div className="text-gray-900 font-semibold mb-1.5 text-sm">
-                          {mapLocations[0].location}
+                          {pickupLocationName}
                         </div>
                       )}
                       <div className="text-gray-600 text-xs font-mono bg-gray-50 px-2 py-1 rounded inline-block">
-                        {mapLocations[0]?.coordinates[1].toFixed(5)}°, {mapLocations[0]?.coordinates[0].toFixed(5)}°
+                        {pickupCoords[1].toFixed(5)}°, {pickupCoords[0].toFixed(5)}°
                       </div>
                     </div>
                   </div>
@@ -345,13 +364,13 @@ export default function ELDDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-red-500 mb-1 uppercase tracking-wide text-sm">Destination</div>
-                      {mapLocations[mapLocations.length - 1]?.location && (
+                      {dropoffLocationName && (
                         <div className="text-gray-900 font-semibold mb-1.5 text-sm">
-                          {mapLocations[mapLocations.length - 1].location}
+                          {dropoffLocationName}
                         </div>
                       )}
                       <div className="text-gray-600 text-xs font-mono bg-gray-50 px-2 py-1 rounded inline-block">
-                        {mapLocations[mapLocations.length - 1]?.coordinates[1].toFixed(5)}°, {mapLocations[mapLocations.length - 1]?.coordinates[0].toFixed(5)}°
+                        {dropoffCoords[1].toFixed(5)}°, {dropoffCoords[0].toFixed(5)}°
                       </div>
                     </div>
                   </div>
@@ -397,7 +416,7 @@ export default function ELDDashboard() {
               </div>
               <p className="text-[#121212] text-lg font-medium mb-2">No activity logs for this date</p>
               <p className="text-[#121212] text-sm max-w-md mx-auto">Select a different date or add new activity logs to track your hours of service.</p>
-              <a href="/" className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center mx-auto">
+              <a href="/trip-planning" className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center mx-auto">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                 </svg>
@@ -502,7 +521,7 @@ export default function ELDDashboard() {
         {logs.length > 0 && (
           <div className="mt-6 text-center">
             <a
-              href="/"
+              href="/trip-planning"
               className="inline-flex items-center px-6 py-3 bg-white text-[#121212] font-medium rounded-md shadow hover:bg-gray-100 gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

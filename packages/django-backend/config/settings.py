@@ -83,15 +83,10 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS settings
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-CORS_ALLOWED_ORIGINS = [
-    '*'
-]
+# CORS settings - Allow all origins
+CORS_ALLOW_ALL_ORIGINS = True
 
-# Add production frontend URL if set
-if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
 # If FRONTEND_URL is set to a hostname, also add its host to ALLOWED_HOSTS
 try:

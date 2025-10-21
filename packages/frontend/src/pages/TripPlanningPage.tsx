@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import RouteDisplayPage from './RouteDisplayPage';
 import EnhancedMap from '../components/EnhancedMap';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 import { 
   getLocationSuggestions, 
   geocodeAddress,
@@ -138,13 +139,11 @@ export default function TripPlanningPage() {
         // Set new timeout for 300ms
         currentLocationDebounceRef.current = setTimeout(async () => {
           try {
-            console.log('Fetching suggestions for:', value);
             const suggestions = await getLocationSuggestions(value);
-            console.log('Received suggestions:', suggestions);
             setCurrentLocationSuggestions(suggestions);
             setShowCurrentLocationSuggestions(true);
           } catch (error) {
-            console.error('Error getting current location suggestions:', error);
+            toast.error('Failed to load location suggestions');
             setCurrentLocationSuggestions([]);
             setShowCurrentLocationSuggestions(false);
           }
@@ -169,13 +168,11 @@ export default function TripPlanningPage() {
       // Set new timeout for 300ms
       departureDebounceRef.current = setTimeout(async () => {
         try {
-          console.log('Fetching departure suggestions for:', value);
           const suggestions = await getLocationSuggestions(value);
-          console.log('Received departure suggestions:', suggestions);
           setDepartureSuggestions(suggestions);
           setShowDepartureSuggestions(true);
         } catch (error) {
-          console.error('Error getting departure suggestions:', error);
+          toast.error('Failed to load departure suggestions');
           setDepartureSuggestions([]);
           setShowDepartureSuggestions(false);
         }
@@ -199,13 +196,11 @@ export default function TripPlanningPage() {
       // Set new timeout for 300ms
       destinationDebounceRef.current = setTimeout(async () => {
         try {
-          console.log('Fetching destination suggestions for:', value);
           const suggestions = await getLocationSuggestions(value);
-          console.log('Received destination suggestions:', suggestions);
           setDestinationSuggestions(suggestions);
           setShowDestinationSuggestions(true);
         } catch (error) {
-          console.error('Error getting destination suggestions:', error);
+          toast.error('Failed to load destination suggestions');
           setDestinationSuggestions([]);
           setShowDestinationSuggestions(false);
         }
@@ -291,11 +286,11 @@ export default function TripPlanningPage() {
             act.id === editingActivityId ? activityEntry : act
           ));
           setEditingActivityId(null);
-          alert('Activity updated successfully!');
+          toast.success('Activity updated successfully!');
         } else {
           // Add new activity
           setActivities(prev => [...prev, activityEntry]);
-          alert('Activity added successfully! Add more activities or submit the daily log.');
+          toast.success('Activity added! Add more activities or submit the daily log.');
         }
         
         // Reset form for next activity
@@ -315,8 +310,7 @@ export default function TripPlanningPage() {
         setShowMap(true); // Show map with all activities
         
       } catch (error) {
-        console.error('Error adding activity:', error);
-        alert(error instanceof Error ? error.message : 'Error adding activity. Please try again.');
+        toast.error(error instanceof Error ? error.message : 'Failed to add activity. Please try again.');
       } finally {
         setIsSubmitting(false);
       }
@@ -326,18 +320,18 @@ export default function TripPlanningPage() {
   // Submit entire daily log to backend
   const handleSubmitDailyLog = async () => {
     if (activities.length === 0) {
-      alert('Please add at least one activity before submitting the daily log.');
+      toast.error('Please add at least one activity before submitting the daily log.');
       return;
     }
 
     // Validate departure and destination
     if (!dailyDeparture.trim()) {
-      alert('Please enter a departure location before submitting the daily log.');
+      toast.error('Please enter a departure location before submitting the daily log.');
       return;
     }
 
     if (!dailyDestination.trim()) {
-      alert('Please enter a destination before submitting the daily log.');
+      toast.error('Please enter a destination before submitting the daily log.');
       return;
     }
 
@@ -356,7 +350,7 @@ export default function TripPlanningPage() {
         setDestinationCoordinates(finalDestinationCoords);
       }
     } catch (error) {
-      alert('Could not find coordinates for departure or destination. Please check the addresses.');
+      toast.error('Could not find coordinates for departure or destination. Please check the addresses.');
       return;
     }
 
@@ -364,7 +358,8 @@ export default function TripPlanningPage() {
     
     try {
       // Submit all activities to backend
-      for (const activity of activities) {
+      for (let i = 0; i < activities.length; i++) {
+        const activity = activities[i];
         // Combine date and time for full datetime
         const startDateTime = `${logDate}T${activity.startTime}:00`;
         const endDateTime = `${logDate}T${activity.endTime}:00`;
@@ -391,18 +386,23 @@ export default function TripPlanningPage() {
         };
 
         await createELDLog(eldLogData);
+        toast.success(`Activity ${i + 1}/${activities.length} saved`, {
+          duration: 1500,
+        });
       }
       
       setDailyLogSubmitted(true);
-      alert(`Daily log for ${format(new Date(logDate), 'MMM dd, yyyy')} submitted successfully! ${activities.length} activities recorded.`);
+      toast.success(`Daily log for ${format(new Date(logDate), 'MMM dd, yyyy')} submitted successfully! ${activities.length} activities recorded.`, {
+        duration: 5000,
+      });
       
       // Optionally reset for next day
       // setActivities([]);
       // setLogDate(format(new Date(), 'yyyy-MM-dd'));
       
     } catch (error) {
-      console.error('Error submitting daily log:', error);
-      alert('Error submitting daily log. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to submit daily log: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -524,7 +524,7 @@ export default function TripPlanningPage() {
         </div>
 
         {/* Departure and Destination - Entered once for the entire day */}
-        {!dailyLogSubmitted && (
+        {!dailyLogSubmitted && activities.length === 0 && (
           <div className="bg-white shadow-lg rounded-xl p-6 mb-8 animate-fadeIn delay-500 border-l-4 border-blue-500">
             <div className="flex items-center mb-4">
               <div className="bg-blue-100 p-2 rounded-lg mr-3">
@@ -538,7 +538,7 @@ export default function TripPlanningPage() {
                   Daily Route - Departure & Destination
                   <span className="text-red-500 ml-1">*</span>
                 </h3>
-                <p className="text-sm text-gray-600">Enter the starting point and final destination for today's activities</p>
+                <p className="text-sm text-gray-600">Enter the starting point and final destination for today's activities (entered once per day)</p>
               </div>
             </div>
             
@@ -647,6 +647,40 @@ export default function TripPlanningPage() {
         {/* Activity Timeline - Show added activities */}
         {activities.length > 0 && (
           <div className="bg-white shadow-lg rounded-xl p-6 mb-8 animate-fadeIn">
+            {/* Daily Route Summary - Show departure and destination info */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-6 border border-blue-200">
+              <div className="flex items-center mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <h4 className="font-semibold text-gray-800">Daily Route</h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-600 uppercase">Departure</div>
+                    <div className="text-sm font-medium text-gray-900">{dailyDeparture || 'Not set'}</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-600 uppercase">Destination</div>
+                    <div className="text-sm font-medium text-gray-900">{dailyDestination || 'Not set'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b border-gray-100 pb-4">
               <div className="mb-4 sm:mb-0">
                 <div className="flex items-center gap-3">
@@ -1125,54 +1159,121 @@ export default function TripPlanningPage() {
         
         {/* Map showing all activities */}
         {activities.length > 0 && showMap && departureCoordinates && destinationCoordinates && (
-          <div className="bg-white shadow-lg rounded-xl p-6 mt-8 border border-indigo-100 animate-fadeIn">
-            <div className="flex items-center mb-4">
-              <div className="bg-indigo-100 p-2 rounded-lg mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
+          <div className="bg-[#1D1C4E] rounded-xl shadow-lg p-6 mt-8 card-entrance animate-fadeIn border border-[#2D2C6E]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <div className="bg-[#13123A] p-3 rounded-lg mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#8B5CF6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white">Trip Map - Planned Route</h3>
               </div>
-              <h3 className="text-xl font-semibold text-spotter-dark">Route Visualization</h3>
+              <div className="bg-[#13123A] px-4 py-2 rounded-full text-sm font-medium text-[#B4B2FF] border border-[#2D2C6E]">
+                {format(new Date(logDate), 'MMMM d, yyyy')}
+              </div>
             </div>
-            <div className="h-96 border-2 border-indigo-100 rounded-xl overflow-hidden shadow-inner">
+            
+            <div className="h-96 rounded-xl overflow-hidden border border-[#3D3C8E] shadow-lg relative">
               <EnhancedMap 
                 pickupCoordinates={departureCoordinates}
                 dropoffCoordinates={destinationCoordinates}
+                pickupLocationName={dailyDeparture}
+                dropoffLocationName={dailyDestination}
                 className="w-full h-full"
                 onPickupChange={(coords) => setDepartureCoordinates(coords)}
                 onDropoffChange={(coords) => setDestinationCoordinates(coords)}
                 allowClickToSetPickup={false}
                 allowClickToSetDropoff={false}
+                hideLocationPanel={true}
               />
+              
+              {/* Overlay with loading effect that fades out */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#13123A]/50 via-transparent to-transparent opacity-0 pointer-events-none animate-fadeIn"></div>
             </div>
-            <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-100">
-              <p className="font-medium text-slate-800 mb-3 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
-                </svg>
-                Map Legend
+            
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-sm text-[#B4B2FF]">
+                Route from <span className="font-semibold text-white">{dailyDeparture}</span> to <span className="font-semibold text-white">{dailyDestination}</span>
               </p>
-              <div className="flex flex-wrap gap-6 mt-2">
-                <div className="flex items-center bg-white px-3 py-2 rounded-md shadow-sm">
-                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full mr-2 shadow-sm"></div>
-                  <span className="text-sm font-medium">Departure (Starting Point)</span>
+              <button className="text-sm text-[#8B5CF6] hover:text-[#6D5ACD] flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh Map
+              </button>
+            </div>
+            
+            <div className="mt-4 p-4 bg-[#13123A] rounded-lg border border-[#2D2C6E]">
+              <p className="font-medium text-white mb-3">Map Legend</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-[#6D5ACD] rounded-full mr-2 shadow-md animate-pulse-spotter"></div>
+                  <span className="text-sm text-[#B4B2FF]">Start Location</span>
                 </div>
-                <div className="flex items-center bg-white px-3 py-2 rounded-md shadow-sm">
-                  <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-red-700 rounded-full mr-2 shadow-sm"></div>
-                  <span className="text-sm font-medium">Destination (Final Point)</span>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-[#8B5CF6] rounded-full mr-2 shadow-md animate-pulse-spotter"></div>
+                  <span className="text-sm text-[#B4B2FF]">End Location</span>
                 </div>
-                <div className="flex items-center bg-white px-3 py-2 rounded-md shadow-sm">
-                  <div className="w-6 h-1 bg-blue-500 mr-2"></div>
-                  <span className="text-sm font-medium">Suggested Route</span>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-[#7A42F0] rounded-sm mr-2 shadow-md"></div>
+                  <span className="text-sm text-[#B4B2FF]">Route Path</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-[#13123A] rounded-full flex items-center justify-center border-2 border-[#3D3C8E] mr-2">
+                    <div className="w-3 h-3 bg-[#B4B2FF] rounded-full"></div>
+                  </div>
+                  <span className="text-sm text-[#B4B2FF]">Waypoints</span>
                 </div>
               </div>
-              <p className="mt-4 text-xs text-gray-600 bg-white p-2 rounded border border-slate-200 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span>Markers can be dragged to adjust locations. The blue line shows the suggested route based on optimal path calculation.</span>
-              </p>
             </div>
+            
+            {/* Trip Locations Section - displayed below legend */}
+            {departureCoordinates && destinationCoordinates && (
+              <div className="mt-4 bg-white rounded-lg shadow-md border border-gray-200 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Start Location */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-tl-full rounded-tr-full rounded-bl-none rounded-br-full -rotate-45 flex-shrink-0 flex items-center justify-center shadow-md">
+                      <svg className="rotate-45 w-4 h-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-blue-600 mb-1 uppercase tracking-wide text-sm">Start Location</div>
+                      {dailyDeparture && (
+                        <div className="text-gray-900 font-semibold mb-1.5 text-sm">
+                          {dailyDeparture}
+                        </div>
+                      )}
+                      <div className="text-gray-600 text-xs font-mono bg-gray-50 px-2 py-1 rounded inline-block">
+                        {departureCoordinates[1].toFixed(5)}°, {departureCoordinates[0].toFixed(5)}°
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Destination Location */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-red-500 rounded-tl-full rounded-tr-full rounded-bl-none rounded-br-full -rotate-45 flex-shrink-0 flex items-center justify-center shadow-md">
+                      <svg className="rotate-45 w-4 h-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-red-500 mb-1 uppercase tracking-wide text-sm">Destination</div>
+                      {dailyDestination && (
+                        <div className="text-gray-900 font-semibold mb-1.5 text-sm">
+                          {dailyDestination}
+                        </div>
+                      )}
+                      <div className="text-gray-600 text-xs font-mono bg-gray-50 px-2 py-1 rounded inline-block">
+                        {destinationCoordinates[1].toFixed(5)}°, {destinationCoordinates[0].toFixed(5)}°
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
+import toast from 'react-hot-toast';
 import { getRoute } from '../services/api';
 
 interface EnhancedMapProps {
@@ -96,6 +97,7 @@ export default function EnhancedMap({
     // Explicitly handle map errors
     map.current.on('error', (e) => {
       console.error('MapLibre Error:', e);
+      toast.error('Map failed to load. Please refresh the page.');
     });
 
     // Wait for map to fully load before adding controls
@@ -345,6 +347,7 @@ export default function EnhancedMap({
             }
           } catch (error) {
             console.error('Error fetching route:', error);
+            toast.error('Unable to load route. Showing direct path instead.');
             drawDirectLine();
           }
         };

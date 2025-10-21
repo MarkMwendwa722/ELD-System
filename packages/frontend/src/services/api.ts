@@ -271,9 +271,17 @@ export const createELDLog = async (logData: ELDLogData): Promise<{ log_id: numbe
   try {
     const response = await api.post('/eld-logs/', logData);
     return response.data;
-  } catch (error) {
-    console.error('Error creating ELD log:', error);
-    throw error;
+  } catch (error: any) {
+    if (error.response) {
+      // Server responded with error status
+      throw new Error(error.response.data?.error || `Server error: ${error.response.status}`);
+    } else if (error.request) {
+      // Request was made but no response received
+      throw new Error('Cannot connect to backend. Please ensure the server is running on http://localhost:8000');
+    } else {
+      // Something else happened
+      throw new Error(error.message || 'Failed to create ELD log');
+    }
   }
 };
 
