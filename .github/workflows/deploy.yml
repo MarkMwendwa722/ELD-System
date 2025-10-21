@@ -35,6 +35,12 @@ jobs:
       - name: Build
         run: npm run build
         
+      - name: Add .nojekyll file
+        run: touch packages/frontend/dist/.nojekyll
+        
+      - name: List build output
+        run: ls -la packages/frontend/dist
+        
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
