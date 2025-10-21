@@ -130,36 +130,40 @@ npm run dev:backend
 
 ## 🌐 Deployment
 
-### Deploy to Vercel (Recommended)
+### Deploy to GitHub Pages (Recommended)
 
-**Quick Deploy:**
+**3-Step Quick Deploy:**
 
-1. Push to GitHub:
+1. **Push to GitHub:**
    ```bash
    git add .
-   git commit -m "Deploy to Vercel"
+   git commit -m "Deploy to GitHub Pages"
    git push origin main
    ```
 
-2. Import to Vercel:
-   - Go to [vercel.com/new](https://vercel.com/new)
-   - Import your repository
-   - Click **Deploy** (uses default settings)
+2. **Enable GitHub Pages:**
+   - Go to [Repository Settings → Pages](https://github.com/MarkMwendwa722/ELD-System/settings/pages)
+   - Under "Source", select **GitHub Actions**
+   - Click **Save**
+
+3. **Visit Your Site:**
+   - Wait 2-3 minutes for deployment
+   - Visit: **https://markmwendwa722.github.io/ELD-System**
 
 **Configuration:**
-- Build Command: `npm run build`
-- Output Directory: `packages/frontend/dist`
-- Framework: Other
+- ✅ GitHub Actions workflow configured
+- ✅ Automatic deployment on push to main
+- ✅ Free and simple
 
-📖 **Detailed Guide:** See [docs/QUICK_DEPLOY.md](./docs/QUICK_DEPLOY.md)
+📖 **Detailed Guide:** See [GITHUB_PAGES_DEPLOYMENT.md](./GITHUB_PAGES_DEPLOYMENT.md)
 
 ### Deploy Django Backend Separately
 
-The Django backend is **not** deployed to Vercel. Deploy it separately to:
+The Django backend should be deployed separately to:
 - [Railway](https://railway.app)
 - [Render](https://render.com)
 - [Heroku](https://heroku.com)
-- [DigitalOcean](https://www.digitalocean.com)
+- [PythonAnywhere](https://www.pythonanywhere.com)
 
 ## �️ Tech Stack
 

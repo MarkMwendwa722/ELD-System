@@ -13,9 +13,12 @@
     "build": "npm --workspace packages/frontend run build",
     "build:backend": "npm --workspace packages/local-dev-backend run build",
     "preview": "npm --workspace packages/frontend run preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d packages/frontend/dist",
     "lint": "npm --workspace packages/frontend run lint",
     "lint:fix": "npm --workspace packages/frontend run lint:fix"
   },
+  "homepage": "https://markmwendwa722.github.io/ELD-System",
   "keywords": [
     "eld",
     "electronic-logging-device",
@@ -23,5 +26,8 @@
     "hours-of-service"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
 }
