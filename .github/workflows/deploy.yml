@@ -33,7 +33,9 @@ jobs:
         run: npm ci
         
       - name: Build
-        run: npm run build
+        run: |
+          export VITE_BASE=/ELD-System/
+          npm run build
         
       - name: Add .nojekyll file
         run: touch packages/frontend/dist/.nojekyll

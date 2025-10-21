@@ -6,10 +6,11 @@ import react from '@vitejs/plugin-react'
 // Make the base path dynamic so the same build can work for Vercel (root '/')
 // and GitHub Pages (repo is served at '/ELD-System/'). Local/dev falls back to '/'.
 export default defineConfig(() => {
+  const envBase = process.env.VITE_BASE;
   const isVercel = !!process.env.VERCEL;
   const isGitHubActions = !!process.env.GITHUB_ACTIONS;
 
-  const base = isVercel ? '/' : isGitHubActions ? '/ELD-System/' : '/';
+  const base = envBase ? envBase : isVercel ? '/' : isGitHubActions ? '/ELD-System/' : '/';
 
   return {
     base,
