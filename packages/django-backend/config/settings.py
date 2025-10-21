@@ -54,12 +54,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Database Configuration
+# We'll use MongoDB for data storage, but keep a minimal SQLite for Django's internal tables
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# MongoDB Configuration
+MONGODB_URI = os.getenv('MONGODB_URI')
+MONGODB_NAME = os.getenv('MONGODB_NAME', 'spotter_db')
 
 AUTH_PASSWORD_VALIDATORS = []
 

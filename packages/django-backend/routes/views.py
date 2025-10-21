@@ -1,14 +1,13 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.utils import timezone
-from django.core.exceptions import ValidationError
 from decimal import Decimal, InvalidOperation
+from bson import ObjectId
+from datetime import datetime
 import json
 import requests
-from .models import ELDLog, DriverProfile
+from config.mongodb import get_database
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
@@ -48,72 +47,66 @@ def plan_route(request):
 @require_http_methods(["POST"])
 def create_eld_log(request):
     """
-    Create a new ELD log entry
+    Create a new ELD log entry in MongoDB
     """
     try:
         data = json.loads(request.body)
-        
-        # For now, create a default user if none exists (in production, use proper authentication)
-        driver, created = User.objects.get_or_create(
-            username=data.get('driver_username', 'default_driver'),
-            defaults={
-                'first_name': data.get('driver_first_name', 'Driver'),
-                'last_name': data.get('driver_last_name', 'User'),
-                'email': data.get('driver_email', 'driver@example.com')
-            }
-        )
+        db = get_database()
         
         # Parse coordinates safely
-        def safe_decimal(value):
+        def safe_float(value):
             if value is None or value == '':
                 return None
             try:
-                return Decimal(str(value))
-            except (InvalidOperation, ValueError):
+                return float(value)
+            except (ValueError, TypeError):
                 return None
         
         # Parse datetime strings
-        start_time = timezone.datetime.fromisoformat(data['startTime'].replace('Z', '+00:00'))
+        start_time = datetime.fromisoformat(data['startTime'].replace('Z', '+00:00'))
         end_time = None
         if data.get('endTime'):
-            end_time = timezone.datetime.fromisoformat(data['endTime'].replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(data['endTime'].replace('Z', '+00:00'))
         
-        # Create ELD log entry
-        eld_log = ELDLog.objects.create(
-            driver=driver,
-            activity_status=data['activityStatus'],
-            current_location=data['currentLocation'],
-            current_latitude=safe_decimal(data.get('currentLatitude')),
-            current_longitude=safe_decimal(data.get('currentLongitude')),
-            pickup_location=data.get('pickupLocation'),
-            pickup_latitude=safe_decimal(data.get('pickupLatitude')),
-            pickup_longitude=safe_decimal(data.get('pickupLongitude')),
-            dropoff_location=data.get('dropoffLocation'),
-            dropoff_latitude=safe_decimal(data.get('dropoffLatitude')),
-            dropoff_longitude=safe_decimal(data.get('dropoffLongitude')),
-            start_time=start_time,
-            end_time=end_time,
-            remarks=data.get('remarks'),
-            current_cycle_used=safe_decimal(data.get('currentCycleUsed', 0)),
-            odometer_reading=data.get('odometerReading'),
-            engine_hours=safe_decimal(data.get('engineHours')),
-            vehicle_id=data.get('vehicleId')
-        )
+        # Create ELD log document
+        eld_log = {
+            'driver_username': data.get('driver_username', 'default_driver'),
+            'driver_first_name': data.get('driver_first_name', 'Driver'),
+            'driver_last_name': data.get('driver_last_name', 'User'),
+            'driver_email': data.get('driver_email', 'driver@example.com'),
+            'activity_status': data['activityStatus'],
+            'current_location': data['currentLocation'],
+            'current_latitude': safe_float(data.get('currentLatitude')),
+            'current_longitude': safe_float(data.get('currentLongitude')),
+            'pickup_location': data.get('pickupLocation'),
+            'pickup_latitude': safe_float(data.get('pickupLatitude')),
+            'pickup_longitude': safe_float(data.get('pickupLongitude')),
+            'dropoff_location': data.get('dropoffLocation'),
+            'dropoff_latitude': safe_float(data.get('dropoffLatitude')),
+            'dropoff_longitude': safe_float(data.get('dropoffLongitude')),
+            'start_time': start_time,
+            'end_time': end_time,
+            'remarks': data.get('remarks'),
+            'current_cycle_used': safe_float(data.get('currentCycleUsed', 0)),
+            'odometer_reading': data.get('odometerReading'),
+            'engine_hours': safe_float(data.get('engineHours')),
+            'vehicle_id': data.get('vehicleId'),
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        }
+        
+        # Insert into MongoDB
+        result = db.eld_logs.insert_one(eld_log)
         
         return JsonResponse({
             'message': 'ELD log created successfully',
-            'log_id': eld_log.id,
+            'log_id': str(result.inserted_id),
             'status': 'success'
         }, status=201)
         
     except KeyError as e:
         return JsonResponse({
             'error': f'Missing required field: {str(e)}',
-            'status': 'error'
-        }, status=400)
-    except ValidationError as e:
-        return JsonResponse({
-            'error': f'Validation error: {str(e)}',
             'status': 'error'
         }, status=400)
     except json.JSONDecodeError:
@@ -132,18 +125,11 @@ def create_eld_log(request):
 @require_http_methods(["GET"])
 def get_eld_logs(request):
     """
-    Get ELD logs for a driver (with optional date filtering)
+    Get ELD logs for a driver from MongoDB (with optional date filtering)
     """
     try:
         driver_username = request.GET.get('driver_username', 'default_driver')
-        
-        try:
-            driver = User.objects.get(username=driver_username)
-        except User.DoesNotExist:
-            return JsonResponse({
-                'error': 'Driver not found',
-                'status': 'error'
-            }, status=404)
+        db = get_database()
         
         # Get query parameters
         limit = int(request.GET.get('limit', 100))
@@ -151,51 +137,62 @@ def get_eld_logs(request):
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         
-        # Start with base query
-        logs_query = ELDLog.objects.filter(driver=driver)
+        # Build MongoDB query
+        query = {'driver_username': driver_username}
         
         # Apply date filters if provided
-        if start_date:
-            start_datetime = timezone.datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-            logs_query = logs_query.filter(start_time__gte=start_datetime)
+        if start_date or end_date:
+            query['start_time'] = {}
+            if start_date:
+                start_datetime = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                query['start_time']['$gte'] = start_datetime
+            if end_date:
+                end_datetime = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                query['start_time']['$lte'] = end_datetime
         
-        if end_date:
-            end_datetime = timezone.datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-            logs_query = logs_query.filter(start_time__lte=end_datetime)
+        # Get total count
+        total_count = db.eld_logs.count_documents(query)
         
-        # Order by start_time and apply pagination
-        logs = logs_query.order_by('start_time')[offset:offset + limit]
-        total_count = logs_query.count()
+        # Get logs with pagination
+        logs_cursor = db.eld_logs.find(query).sort('start_time', 1).skip(offset).limit(limit)
         
         logs_data = []
-        for log in logs:
+        for log in logs_cursor:
+            # Calculate duration in minutes if end_time exists
+            duration_minutes = None
+            is_ongoing = True
+            if log.get('end_time'):
+                is_ongoing = False
+                duration = log['end_time'] - log['start_time']
+                duration_minutes = int(duration.total_seconds() / 60)
+            
             logs_data.append({
-                'id': log.id,
-                'driver_username': driver.username,
-                'driver_first_name': driver.first_name,
-                'driver_last_name': driver.last_name,
-                'driver_email': driver.email,
-                'activityStatus': log.activity_status,
-                'currentLocation': log.current_location,
-                'currentLatitude': float(log.current_latitude) if log.current_latitude else None,
-                'currentLongitude': float(log.current_longitude) if log.current_longitude else None,
-                'pickupLocation': log.pickup_location,
-                'pickupLatitude': float(log.pickup_latitude) if log.pickup_latitude else None,
-                'pickupLongitude': float(log.pickup_longitude) if log.pickup_longitude else None,
-                'dropoffLocation': log.dropoff_location,
-                'dropoffLatitude': float(log.dropoff_latitude) if log.dropoff_latitude else None,
-                'dropoffLongitude': float(log.dropoff_longitude) if log.dropoff_longitude else None,
-                'startTime': log.start_time.isoformat(),
-                'endTime': log.end_time.isoformat() if log.end_time else None,
-                'remarks': log.remarks,
-                'currentCycleUsed': float(log.current_cycle_used),
-                'odometerReading': log.odometer_reading,
-                'engineHours': float(log.engine_hours) if log.engine_hours else None,
-                'vehicleId': log.vehicle_id,
-                'isOngoing': log.is_ongoing,
-                'durationMinutes': log.duration_minutes,
-                'createdAt': log.created_at.isoformat(),
-                'updatedAt': log.updated_at.isoformat()
+                'id': str(log['_id']),
+                'driver_username': log.get('driver_username'),
+                'driver_first_name': log.get('driver_first_name'),
+                'driver_last_name': log.get('driver_last_name'),
+                'driver_email': log.get('driver_email'),
+                'activityStatus': log.get('activity_status'),
+                'currentLocation': log.get('current_location'),
+                'currentLatitude': log.get('current_latitude'),
+                'currentLongitude': log.get('current_longitude'),
+                'pickupLocation': log.get('pickup_location'),
+                'pickupLatitude': log.get('pickup_latitude'),
+                'pickupLongitude': log.get('pickup_longitude'),
+                'dropoffLocation': log.get('dropoff_location'),
+                'dropoffLatitude': log.get('dropoff_latitude'),
+                'dropoffLongitude': log.get('dropoff_longitude'),
+                'startTime': log['start_time'].isoformat(),
+                'endTime': log['end_time'].isoformat() if log.get('end_time') else None,
+                'remarks': log.get('remarks'),
+                'currentCycleUsed': log.get('current_cycle_used', 0),
+                'odometerReading': log.get('odometer_reading'),
+                'engineHours': log.get('engine_hours'),
+                'vehicleId': log.get('vehicle_id'),
+                'isOngoing': is_ongoing,
+                'durationMinutes': duration_minutes,
+                'createdAt': log.get('created_at').isoformat() if log.get('created_at') else None,
+                'updatedAt': log.get('updated_at').isoformat() if log.get('updated_at') else None
             })
         
         return JsonResponse({
@@ -217,66 +214,79 @@ def get_eld_logs(request):
 @require_http_methods(["PUT"])
 def update_eld_log(request, log_id):
     """
-    Update an existing ELD log entry
+    Update an existing ELD log entry in MongoDB
     """
     try:
         data = json.loads(request.body)
+        db = get_database()
         
+        # Check if log exists
         try:
-            eld_log = ELDLog.objects.get(id=log_id)
-        except ELDLog.DoesNotExist:
+            object_id = ObjectId(log_id)
+        except Exception:
+            return JsonResponse({
+                'error': 'Invalid log ID format',
+                'status': 'error'
+            }, status=400)
+        
+        existing_log = db.eld_logs.find_one({'_id': object_id})
+        if not existing_log:
             return JsonResponse({
                 'error': 'ELD log not found',
                 'status': 'error'
             }, status=404)
         
         # Parse coordinates safely
-        def safe_decimal(value):
+        def safe_float(value):
             if value is None or value == '':
                 return None
             try:
-                return Decimal(str(value))
-            except (InvalidOperation, ValueError):
+                return float(value)
+            except (ValueError, TypeError):
                 return None
+        
+        # Build update document
+        update_fields = {
+            'updated_at': datetime.utcnow()
+        }
         
         # Update fields if provided
         if 'activityStatus' in data:
-            eld_log.activity_status = data['activityStatus']
+            update_fields['activity_status'] = data['activityStatus']
         if 'currentLocation' in data:
-            eld_log.current_location = data['currentLocation']
+            update_fields['current_location'] = data['currentLocation']
         if 'currentLatitude' in data:
-            eld_log.current_latitude = safe_decimal(data['currentLatitude'])
+            update_fields['current_latitude'] = safe_float(data['currentLatitude'])
         if 'currentLongitude' in data:
-            eld_log.current_longitude = safe_decimal(data['currentLongitude'])
+            update_fields['current_longitude'] = safe_float(data['currentLongitude'])
         if 'endTime' in data and data['endTime']:
-            eld_log.end_time = timezone.datetime.fromisoformat(data['endTime'].replace('Z', '+00:00'))
+            update_fields['end_time'] = datetime.fromisoformat(data['endTime'].replace('Z', '+00:00'))
         if 'remarks' in data:
-            eld_log.remarks = data['remarks']
+            update_fields['remarks'] = data['remarks']
         if 'odometerReading' in data:
-            eld_log.odometer_reading = data['odometerReading']
+            update_fields['odometer_reading'] = data['odometerReading']
         if 'engineHours' in data:
-            eld_log.engine_hours = safe_decimal(data['engineHours'])
+            update_fields['engine_hours'] = safe_float(data['engineHours'])
         if 'vehicleId' in data:
-            eld_log.vehicle_id = data['vehicleId']
+            update_fields['vehicle_id'] = data['vehicleId']
         
         # Mark as edited
-        eld_log.is_edited = True
+        update_fields['is_edited'] = True
         if 'editReason' in data:
-            eld_log.edit_reason = data['editReason']
+            update_fields['edit_reason'] = data['editReason']
         
-        eld_log.save()
+        # Update in MongoDB
+        db.eld_logs.update_one(
+            {'_id': object_id},
+            {'$set': update_fields}
+        )
         
         return JsonResponse({
             'message': 'ELD log updated successfully',
-            'log_id': eld_log.id,
+            'log_id': log_id,
             'status': 'success'
         })
         
-    except ValidationError as e:
-        return JsonResponse({
-            'error': f'Validation error: {str(e)}',
-            'status': 'error'
-        }, status=400)
     except json.JSONDecodeError:
         return JsonResponse({
             'error': 'Invalid JSON data',
