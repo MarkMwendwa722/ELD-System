@@ -5,7 +5,6 @@ set -eu
 if [ -f packages/frontend/package.json ]; then
   echo "Found packages/frontend/package.json, building frontend..."
   cd packages/frontend
-  npm ci
   npm run build
   echo "--- BUILD DEBUG ---"
   pwd
@@ -15,9 +14,10 @@ if [ -f packages/frontend/package.json ]; then
   ls -la .
   echo "--- DIST LIST ---"
   ls -la dist || true
+  # create a small marker so build logs / artifact show the dist was produced
+  echo "ok" > dist/VERCEL_OK || true
 else
   echo "No packages/frontend/package.json found, attempting root build..."
-  npm ci
   npm run build
   echo "--- BUILD DEBUG ---"
   pwd
@@ -25,4 +25,5 @@ else
   ls -la .
   echo "--- DIST LIST ---"
   ls -la dist || true
+  echo "ok" > dist/VERCEL_OK || true
 fi

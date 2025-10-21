@@ -1,7 +1,7 @@
 {
   "buildCommand": "sh ./scripts/vercel-build.sh",
   "outputDirectory": "packages/frontend/dist",
-  "installCommand": "echo \"Skipping root install; build command will install frontend dependencies if needed\"",
+  "installCommand": "npm ci",
   "rewrites": [
     {
       "source": "/api/(.*)",
