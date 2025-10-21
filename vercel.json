@@ -1,10 +1,7 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "npm install",
-  "framework": null,
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -12,12 +9,6 @@
     }
   ],
   "cleanUrls": true,
-  "trailingSlash": false,
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "@vercel/node@3.0.7"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
