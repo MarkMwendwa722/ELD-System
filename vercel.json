@@ -12,7 +12,6 @@
       "destination": "/index.html"
     }
   ],
-  "cleanUrls": true,
   "headers": [
     {
       "source": "/(.*)",
