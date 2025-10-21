@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 */node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Python
 __pycache__/
@@ -36,45 +40,52 @@ env/
 .idea/
 *.swp
 *.swo
+*.code-workspace
 
 # OS
 .DS_Store
 Thumbs.db
+*-DESKTOP-*.md
+*-DESKTOP-*.ts
+*-DESKTOP-*.tsx
 
 # Logs
-logs
+logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Coverage directory
 coverage/
+.nyc_output/
 
 # Build outputs
 dist/
 build/
 *.tsbuildinfo
-
-# Docker
-.dockerignore
+packages/frontend/dist/
+packages/frontend/output.css
 
 # Database
 *.db
 *.sqlite3
+db.sqlite3
 
 # Django
-*.log
 local_settings.py
-db.sqlite3
 media/
+staticfiles/
 
 # Temporary files
 *.tmp
 *.temp
+
+# Vercel
+.vercel
+
+# Testing
+.turbo

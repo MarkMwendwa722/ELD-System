@@ -1,0 +1,18 @@
+{
+  "name": "spotter-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serverless API functions for Spotter",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vercel/node": "^3.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.0",
+    "typescript": "^5.1.6"
+  }
+}

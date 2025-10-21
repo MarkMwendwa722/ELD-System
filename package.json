@@ -1,14 +1,27 @@
 {
-  "name": "spotter-monorepo",
+  "name": "spotter-eld-system",
+  "version": "1.0.0",
   "private": true,
+  "description": "Electronic Logging Device (ELD) system for managing driver hours of service",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "bootstrap": "npm install",
-    "start:backend": "npm --workspace packages/backend run dev",
-    "start:frontend": "npm --workspace packages/frontend run dev",
-    "build": "npm --workspaces run build",
-    "lint": "eslint . --ext .ts,.tsx,.js"
-  }
+    "dev": "npm --workspace packages/frontend run dev",
+    "dev:backend": "npm --workspace packages/local-dev-backend run dev",
+    "dev:django": "cd packages/django-backend && python manage.py runserver",
+    "build": "npm --workspace packages/frontend run build",
+    "build:backend": "npm --workspace packages/local-dev-backend run build",
+    "preview": "npm --workspace packages/frontend run preview",
+    "lint": "npm --workspace packages/frontend run lint",
+    "lint:fix": "npm --workspace packages/frontend run lint:fix"
+  },
+  "keywords": [
+    "eld",
+    "electronic-logging-device",
+    "fleet-management",
+    "hours-of-service"
+  ],
+  "author": "",
+  "license": "MIT"
 }

@@ -1,0 +1,12 @@
+node_modules
+packages/local-dev-backend
+packages/django-backend
+docs
+.git
+.github
+*.md
+!README.md
+.eslintrc.json
+.prettierrc
+.vscode
+.gitignore
