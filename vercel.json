@@ -1,5 +1,5 @@
 {
-  "buildCommand": "if [ -f packages/frontend/package.json ]; then cd packages/frontend && npm ci && npm run build; elif [ -f package.json ]; then npm ci && npm run build; else echo \"No package.json found\" && exit 1; fi",
+  "buildCommand": "if [ -f packages/frontend/package.json ]; then cd packages/frontend && npm ci && npm run build && echo '--- BUILD DEBUG ---' && pwd && echo '--- ROOT LIST ---' && ls -la .. && echo '--- FRONTEND LIST ---' && ls -la . && echo '--- DIST LIST ---' && ls -la dist || true; elif [ -f package.json ]; then npm ci && npm run build && echo '--- BUILD DEBUG ---' && pwd && echo '--- ROOT LIST ---' && ls -la . && echo '--- DIST LIST ---' && ls -la dist || true; else echo \"No package.json found\" && exit 1; fi",
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "echo \"Skipping root install; build command will install frontend dependencies if needed\"",
   "rewrites": [
