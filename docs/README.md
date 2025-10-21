@@ -5,11 +5,25 @@ This directory contains all documentation for the Spotter ELD System.
 ## 📋 Table of Contents
 
 ### 🚀 Deployment Documentation
-- **[QUICK_DEPLOY.md](./QUICK_DEPLOY.md)** - Quick reference for deploying to Vercel (⭐ Start here)
-- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Complete step-by-step deployment guide
-- **[DEPLOYMENT_SUMMARY.md](./DEPLOYMENT_SUMMARY.md)** - Summary of architecture changes
-- **[DEPLOYMENT_CHECKLIST.txt](./DEPLOYMENT_CHECKLIST.txt)** - Deployment checklist
-- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Technical Vercel configuration details
+
+**Start Here (New Users):**
+- **[QUICK_START.md](./QUICK_START.md)** - ⭐ Deploy in 15 minutes - complete walkthrough
+- **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Verify your setup before deploying
+
+**Detailed Guides:**
+- **[COMPLETE_INTEGRATION_GUIDE.md](./COMPLETE_INTEGRATION_GUIDE.md)** - Full frontend + backend integration
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture & data flow diagrams
+
+**Platform-Specific:**
+- **[RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)** - Deploy Django backend to Render.com
+- **[DJANGO_RENDER_FIX.md](./DJANGO_RENDER_FIX.md)** - Fix "route not found" on Render
+- **[RENDER_TROUBLESHOOTING.md](./RENDER_TROUBLESHOOTING.md)** - Common Render errors & solutions
+- **[COMPLETE_DEPLOYMENT_GUIDE.md](./COMPLETE_DEPLOYMENT_GUIDE.md)** - Step-by-step Django + Vercel
+- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Vercel configuration details
+
+**Configuration:**
+- **[FRONTEND_ENV_CONFIG.md](./FRONTEND_ENV_CONFIG.md)** - Frontend environment variables
+- **[LOCAL_DEVELOPMENT.md](./LOCAL_DEVELOPMENT.md)** - Run locally for development
 
 ### 📖 ELD System Documentation
 - **[ELD-SPOTTER-README.md](./ELD-SPOTTER-README.md)** - ELD system overview
