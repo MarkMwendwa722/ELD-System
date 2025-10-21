@@ -96,50 +96,54 @@ export default function ELDDashboard() {
     }));
 
   return (
-    <div className="min-h-screen bg-[#121212]">
-      {/* Enhanced Header with animations */}
-      <div className="bg-[#1F1F1F] py-10 text-center mb-8 shadow-lg border-b border-[#333333] relative overflow-hidden">
-        <div className="absolute inset-0 bg-opacity-10 bg-[#000000] z-0">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#333333] via-[#444444] to-[#555555]"></div>
+    <div className="min-h-screen bg-white">
+      {/* Enhanced Header with Unsplash image background */}
+      <div className="py-16 text-center mb-8 shadow-lg relative overflow-hidden">
+        {/* Unsplash image background with overlay */}
+        <div className="absolute inset-0 bg-cover bg-center z-0" 
+             style={{backgroundImage: "url('https://source.unsplash.com/random/1600x400?logistics,truck,highway')"}}> 
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-blue-900/60 to-purple-900/60"></div>
         </div>
-        <div className="relative z-10 fade-in-up">
-          <div className="inline-flex items-center gap-4 mb-5 slide-in-left">
-            <h1 className="text-black text-5xl font-extrabold mb-0 tracking-tight">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#6D5ACD] via-[#8B5CF6] to-[#7A42F0] z-10"></div>
+        <div className="relative z-10 animate-fadeIn py-6">
+          <div className="inline-flex items-center gap-4 mb-5 animate-slideInLeft">
+            <h1 className="text-white text-5xl font-extrabold mb-0 tracking-tight drop-shadow-lg">
               ELD Dashboard
             </h1>
           </div>
-          <p className="text-gray-300 text-xl font-medium m-0 slide-in-right delay-300 max-w-2xl mx-auto">
+          <p className="text-white text-xl font-medium m-0 animate-slideInRight delay-300 max-w-2xl mx-auto drop-shadow-lg">
             24-Hour Activity Log & Trip Visualization
           </p>
-          <div className="mt-4 flex justify-center space-x-2 slide-in-right delay-500">
-            <span className="px-3 py-1 bg-gray-700 text-black rounded-full text-sm font-medium">Real-time Tracking</span>
-            <span className="px-3 py-1 bg-gray-700 text-black rounded-full text-sm font-medium">DOT Compliance</span>
-            <span className="px-3 py-1 bg-gray-700 text-black rounded-full text-sm font-medium">Trip Management</span>
+          <div className="mt-4 flex flex-wrap justify-center gap-2 animate-slideInRight delay-500">
+            <span className="px-3 py-1 bg-[#6D5ACD] text-white rounded-full text-sm font-medium shadow-lg">Real-time Tracking</span>
+            <span className="px-3 py-1 bg-[#7A42F0] text-white rounded-full text-sm font-medium shadow-lg">DOT Compliance</span>
+            <span className="px-3 py-1 bg-[#8B5CF6] text-white rounded-full text-sm font-medium shadow-lg">Trip Management</span>
           </div>
         </div>
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-[#6D5ACD] via-[#8B5CF6] to-[#7A42F0] z-10"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8 pb-8">
         {/* Enhanced Date Selector & Action Buttons */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
-            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md flex-1 sm:max-w-xs card-entrance">
+            <div className="bg-[#1D1C4E] p-4 sm:p-6 rounded-xl shadow-lg flex-1 sm:max-w-xs card-entrance border border-[#2D2C6E]">
               <div className="mb-3">
-                <label className="block text-sm font-semibold text-[#121212]">
+                <label className="block text-sm font-semibold text-white">
                   Select Activity Date
                 </label>
               </div>
-              <div className="custom-date-input">
+              <div className="custom-date-input relative">
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   max={format(new Date(), 'yyyy-MM-dd')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 text-[#121212] bg-white shadow-sm transition-all duration-200"
-                  style={{colorScheme: 'light'}}
+                  className="w-full px-4 py-3 pl-10 border border-[#3D3C8E] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6D5ACD] focus:border-[#6D5ACD] text-white bg-[#13123A] shadow-sm transition-all duration-200"
+                  style={{colorScheme: 'dark'}}
                 />
-                <div className="custom-date-input-icon pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                <div className="custom-date-input-icon absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#8B5CF6]" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                   </svg>
                 </div>
@@ -150,7 +154,7 @@ export default function ELDDashboard() {
               <button
                 onClick={() => setShowMap(!showMap)}
                 disabled={mapLocations.length === 0}
-                className="flex-1 sm:flex-none px-5 py-3 sm:py-4 bg-white text-[#121212] rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="flex-1 sm:flex-none px-5 py-3 sm:py-4 bg-[#6D5ACD] text-white rounded-lg hover:bg-[#7A42F0] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -159,9 +163,9 @@ export default function ELDDashboard() {
               </button>
               
               <button
-                className="flex-1 sm:flex-none px-5 py-3 sm:py-4 bg-white border border-gray-200 text-[#121212] rounded-lg hover:bg-gray-100 flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="flex-1 sm:flex-none px-5 py-3 sm:py-4 bg-[#1D1C4E] border border-[#3D3C8E] text-white rounded-lg hover:bg-[#2D2C6E] flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#121212]" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#8B5CF6]" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
                 <span className="font-medium">Export Data</span>
@@ -171,19 +175,20 @@ export default function ELDDashboard() {
 
           {/* Enhanced Summary Cards with animations */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-xl shadow-lg p-6 card-entrance delay-200 hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105">
+            <div className="bg-[#1D1C4E] rounded-xl shadow-lg p-6 card-entrance delay-200 hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105 border border-[#2D2C6E]">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#6D5ACD] rounded-full filter blur-3xl opacity-20 -mr-10 -mt-10"></div>
               <div className="flex items-center justify-between relative z-10">
                 <div>
-                  <p className="text-sm font-medium text-[#121212] uppercase tracking-wider">Driving Time</p>
-                  <p className="text-4xl font-bold text-[#121212] mt-1">{formatDuration(drivingTime)}</p>
+                  <p className="text-sm font-medium text-[#B4B2FF] uppercase tracking-wider">Driving Time</p>
+                  <p className="text-4xl font-bold text-white mt-1">{formatDuration(drivingTime)}</p>
                   <div className="flex items-center mt-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212] mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8B5CF6] mr-1" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                     </svg>
-                    <p className="text-xs text-[#121212]">Daily limit: <span className="font-semibold">11 hours</span></p>
+                    <p className="text-xs text-[#B4B2FF]">Daily limit: <span className="font-semibold">11 hours</span></p>
                   </div>
                 </div>
-                <div className="bg-white w-16 h-16 rounded-lg flex items-center justify-center text-[#121212] shadow-sm border border-gray-100">
+                <div className="bg-[#13123A] w-16 h-16 rounded-lg flex items-center justify-center text-[#6D5ACD] shadow-md border border-[#2D2C6E]">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
@@ -191,19 +196,20 @@ export default function ELDDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 card-entrance delay-300 hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105">
+            <div className="bg-[#1D1C4E] rounded-xl shadow-lg p-6 card-entrance delay-300 hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105 border border-[#2D2C6E]">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#8B5CF6] rounded-full filter blur-3xl opacity-20 -mr-10 -mt-10"></div>
               <div className="flex items-center justify-between relative z-10">
                 <div>
-                  <p className="text-sm font-medium text-[#121212] uppercase tracking-wider">On-Duty Time</p>
-                  <p className="text-4xl font-bold text-[#121212] mt-1">{formatDuration(onDutyTime)}</p>
+                  <p className="text-sm font-medium text-[#B4B2FF] uppercase tracking-wider">On-Duty Time</p>
+                  <p className="text-4xl font-bold text-white mt-1">{formatDuration(onDutyTime)}</p>
                   <div className="flex items-center mt-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212] mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8B5CF6] mr-1" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                     </svg>
-                    <p className="text-xs text-[#121212]">Daily limit: <span className="font-semibold">14 hours</span></p>
+                    <p className="text-xs text-[#B4B2FF]">Daily limit: <span className="font-semibold">14 hours</span></p>
                   </div>
                 </div>
-                <div className="bg-white w-16 h-16 rounded-lg flex items-center justify-center text-[#121212] shadow-sm border border-gray-100">
+                <div className="bg-[#13123A] w-16 h-16 rounded-lg flex items-center justify-center text-[#7A42F0] shadow-md border border-[#2D2C6E]">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -211,19 +217,20 @@ export default function ELDDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 card-entrance delay-400 hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105">
+            <div className="bg-[#1D1C4E] rounded-xl shadow-lg p-6 card-entrance delay-400 hover:shadow-xl transition-all duration-300 relative overflow-hidden hover:scale-105 border border-[#2D2C6E]">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#7A42F0] rounded-full filter blur-3xl opacity-20 -mr-10 -mt-10"></div>
               <div className="flex items-center justify-between relative z-10">
                 <div>
-                  <p className="text-sm font-medium text-[#121212] uppercase tracking-wider">Off-Duty Time</p>
-                  <p className="text-4xl font-bold text-[#121212] mt-1">{formatDuration(offDutyTime)}</p>
+                  <p className="text-sm font-medium text-[#B4B2FF] uppercase tracking-wider">Off-Duty Time</p>
+                  <p className="text-4xl font-bold text-white mt-1">{formatDuration(offDutyTime)}</p>
                   <div className="flex items-center mt-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#121212] mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8B5CF6] mr-1" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <p className="text-xs text-[#121212]">Required: <span className="font-semibold">10 hours</span></p>
+                    <p className="text-xs text-[#B4B2FF]">Required: <span className="font-semibold">10 hours</span></p>
                   </div>
                 </div>
-                <div className="bg-white w-16 h-16 rounded-lg flex items-center justify-center text-[#121212] shadow-sm border border-gray-100">
+                <div className="bg-[#13123A] w-16 h-16 rounded-lg flex items-center justify-center text-[#8B5CF6] shadow-md border border-[#2D2C6E]">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
                   </svg>
@@ -235,22 +242,22 @@ export default function ELDDashboard() {
 
         {/* Enhanced Map Visualization */}
         {showMap && mapLocations.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 card-entrance animate-fadeIn">
+          <div className="bg-[#1D1C4E] rounded-xl shadow-lg p-6 mb-8 card-entrance animate-fadeIn border border-[#2D2C6E]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <div className="bg-gray-100 p-3 rounded-lg mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#121212]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="bg-[#13123A] p-3 rounded-lg mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#8B5CF6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-[#121212]">Trip Map - Driver Activity</h3>
+                <h3 className="text-xl font-bold text-white">Trip Map - Driver Activity</h3>
               </div>
-              <div className="bg-gray-100 px-4 py-2 rounded-full text-sm font-medium text-[#121212]">
+              <div className="bg-[#13123A] px-4 py-2 rounded-full text-sm font-medium text-[#B4B2FF] border border-[#2D2C6E]">
                 {format(new Date(selectedDate), 'MMMM d, yyyy')}
               </div>
             </div>
             
-            <div className="h-96 rounded-xl overflow-hidden border border-gray-200 shadow-lg relative">
+            <div className="h-96 rounded-xl overflow-hidden border border-[#3D3C8E] shadow-lg relative">
               {/* Map component remains unchanged to preserve functionality */}
               <EnhancedMap 
                 pickupCoordinates={mapLocations[0]?.coordinates}
@@ -263,14 +270,14 @@ export default function ELDDashboard() {
               />
               
               {/* Overlay with loading effect that fades out */}
-              <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-transparent opacity-0 pointer-events-none fade-in-up"></div>
+              <div className="absolute inset-0 bg-gradient-to-b from-[#13123A]/50 via-transparent to-transparent opacity-0 pointer-events-none animate-fadeIn"></div>
             </div>
             
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-[#121212]">
-                Showing <span className="font-semibold">{mapLocations.length}</span> activity location(s)
+              <p className="text-sm text-[#B4B2FF]">
+                Showing <span className="font-semibold text-white">{mapLocations.length}</span> activity location(s)
               </p>
-              <button className="text-sm text-[#121212] hover:text-gray-700 flex items-center">
+              <button className="text-sm text-[#8B5CF6] hover:text-[#6D5ACD] flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -278,26 +285,26 @@ export default function ELDDashboard() {
               </button>
             </div>
             
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-              <p className="font-medium text-[#121212] mb-3">Map Legend</p>
+            <div className="mt-4 p-4 bg-[#13123A] rounded-lg border border-[#2D2C6E]">
+              <p className="font-medium text-white mb-3">Map Legend</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="flex items-center">
-                  <div className="w-6 h-6 bg-blue-600 rounded-full mr-2 shadow-sm status-pulse"></div>
-                  <span className="text-sm text-[#121212]">Start Location</span>
+                  <div className="w-6 h-6 bg-[#6D5ACD] rounded-full mr-2 shadow-md animate-pulse-spotter"></div>
+                  <span className="text-sm text-[#B4B2FF]">Start Location</span>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-6 h-6 bg-red-500 rounded-full mr-2 shadow-sm status-pulse"></div>
-                  <span className="text-sm text-[#121212]">End Location</span>
+                  <div className="w-6 h-6 bg-[#8B5CF6] rounded-full mr-2 shadow-md animate-pulse-spotter"></div>
+                  <span className="text-sm text-[#B4B2FF]">End Location</span>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-6 h-6 bg-blue-400 rounded-sm mr-2 shadow-sm"></div>
-                  <span className="text-sm text-[#121212]">Route Path</span>
+                  <div className="w-6 h-6 bg-[#7A42F0] rounded-sm mr-2 shadow-md"></div>
+                  <span className="text-sm text-[#B4B2FF]">Route Path</span>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-gray-300 mr-2">
-                    <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                  <div className="w-6 h-6 bg-[#13123A] rounded-full flex items-center justify-center border-2 border-[#3D3C8E] mr-2">
+                    <div className="w-3 h-3 bg-[#B4B2FF] rounded-full"></div>
                   </div>
-                  <span className="text-sm text-[#121212]">Rest Stops</span>
+                  <span className="text-sm text-[#B4B2FF]">Rest Stops</span>
                 </div>
               </div>
             </div>
@@ -340,7 +347,7 @@ export default function ELDDashboard() {
               </div>
               <p className="text-[#121212] text-lg font-medium mb-2">No activity logs for this date</p>
               <p className="text-[#121212] text-sm max-w-md mx-auto">Select a different date or add new activity logs to track your hours of service.</p>
-              <a href="/trip-planning" className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center mx-auto">
+              <a href="/" className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center mx-auto">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                 </svg>
@@ -445,7 +452,7 @@ export default function ELDDashboard() {
         {logs.length > 0 && (
           <div className="mt-6 text-center">
             <a
-              href="/trip-planning"
+              href="/"
               className="inline-flex items-center px-6 py-3 bg-white text-[#121212] font-medium rounded-md shadow hover:bg-gray-100 gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
