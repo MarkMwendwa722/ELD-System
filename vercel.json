@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm --workspace packages/frontend run build",
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "npm install",
   "rewrites": [
