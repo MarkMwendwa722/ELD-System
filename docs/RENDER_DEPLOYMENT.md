@@ -28,8 +28,10 @@ Fill in the following settings:
 - **Root Directory:** `packages/local-dev-backend`
 - **Runtime:** `Node`
 - **Build Command:** `npm install && npm run build`
-- **Start Command:** `npm start`
+- **Start Command:** `node dist/index.js`
 - **Plan:** `Free`
+
+**IMPORTANT:** Make sure "Auto-Deploy" is set to **Yes**
 
 ### Step 3: Add Environment Variables
 
