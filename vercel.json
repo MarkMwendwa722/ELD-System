@@ -1,5 +1,5 @@
 {
-  "buildCommand": "sh ./scripts/vercel-build.sh",
+  "buildCommand": "cd packages/frontend && npm run build",
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "npm ci",
   "rewrites": [
