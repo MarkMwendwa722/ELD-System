@@ -5,23 +5,29 @@ import { getRoute } from '../services/api';
 interface EnhancedMapProps {
   pickupCoordinates?: [number, number] | null;
   dropoffCoordinates?: [number, number] | null;
+  pickupLocationName?: string;
+  dropoffLocationName?: string;
   className?: string;
   onPickupChange?: (coords: [number, number]) => void;
   onDropoffChange?: (coords: [number, number]) => void;
   allowClickToSetPickup?: boolean;
   allowClickToSetDropoff?: boolean;
+  hideLocationPanel?: boolean;
 }
 
 // Free map tiles from OpenStreetMap
 
 export default function EnhancedMap({ 
   pickupCoordinates, 
-  dropoffCoordinates, 
+  dropoffCoordinates,
+  pickupLocationName,
+  dropoffLocationName,
   className = '',
   onPickupChange,
   onDropoffChange,
   allowClickToSetPickup = true,
-  allowClickToSetDropoff = true
+  allowClickToSetDropoff = true,
+  hideLocationPanel = false
 }: EnhancedMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -248,215 +254,6 @@ export default function EnhancedMap({
       setIsDirectLineFallback(false);
 
       if (map.current) {
-        // Create custom pickup marker element with Tailwind classes
-        const pickupEl = document.createElement('div');
-        pickupEl.className = 'custom-marker pickup-marker';
-        
-        // Create marker container
-        const pickupContainer = document.createElement('div');
-        pickupContainer.className = 'relative';
-        
-        // Create marker pin
-        const pickupPin = document.createElement('div');
-        pickupPin.className = 'bg-blue-600 w-10 h-10 rounded-tl-full rounded-tr-full rounded-bl-none rounded-br-full -rotate-45 border-3 border-white shadow-lg flex items-center justify-center cursor-move transition-transform hover:scale-110';
-        
-        // Create SVG icon
-        const pickupSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        pickupSvg.setAttribute('class', 'rotate-45 w-5 h-5 text-white');
-        pickupSvg.setAttribute('viewBox', '0 0 20 20');
-        pickupSvg.setAttribute('fill', 'currentColor');
-        
-        const pickupPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        pickupPath.setAttribute('fill-rule', 'evenodd');
-        pickupPath.setAttribute('d', 'M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z');
-        pickupPath.setAttribute('clip-rule', 'evenodd');
-        
-        pickupSvg.appendChild(pickupPath);
-        pickupPin.appendChild(pickupSvg);
-        
-        // Create label
-        const pickupLabel = document.createElement('div');
-        pickupLabel.className = 'absolute -top-8 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-md animate-bounce';
-        pickupLabel.textContent = 'PICKUP';
-        
-        pickupContainer.appendChild(pickupPin);
-        pickupContainer.appendChild(pickupLabel);
-        pickupEl.appendChild(pickupContainer);
-
-        // Create custom dropoff marker element with Tailwind classes
-        const dropoffEl = document.createElement('div');
-        dropoffEl.className = 'custom-marker dropoff-marker';
-        
-        // Create marker container
-        const dropoffContainer = document.createElement('div');
-        dropoffContainer.className = 'relative';
-        
-        // Create marker pin
-        const dropoffPin = document.createElement('div');
-        dropoffPin.className = 'bg-red-500 w-10 h-10 rounded-tl-full rounded-tr-full rounded-bl-none rounded-br-full -rotate-45 border-3 border-white shadow-lg flex items-center justify-center cursor-move transition-all hover:scale-110';
-        
-        // Create SVG icon
-        const dropoffSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        dropoffSvg.setAttribute('class', 'rotate-45 w-5 h-5 text-white');
-        dropoffSvg.setAttribute('viewBox', '0 0 20 20');
-        dropoffSvg.setAttribute('fill', 'currentColor');
-        
-        const dropoffPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        dropoffPath.setAttribute('fill-rule', 'evenodd');
-        dropoffPath.setAttribute('d', 'M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z');
-        dropoffPath.setAttribute('clip-rule', 'evenodd');
-        
-        dropoffSvg.appendChild(dropoffPath);
-        dropoffPin.appendChild(dropoffSvg);
-        
-        // Create label
-        const dropoffLabel = document.createElement('div');
-        dropoffLabel.className = 'absolute -top-8 left-1/2 -translate-x-1/2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-md animate-bounce';
-        dropoffLabel.textContent = 'DESTINATION';
-        
-        dropoffContainer.appendChild(dropoffPin);
-        dropoffContainer.appendChild(dropoffLabel);
-        dropoffEl.appendChild(dropoffContainer);
-
-        // Create markers with custom elements - ensure coordinates are valid numbers
-        const pickupMarker = new maplibregl.Marker({ 
-          element: pickupEl,
-          draggable: onPickupChange !== undefined,
-          anchor: 'bottom'
-        })
-          .setLngLat([
-            typeof pickupCoordinates[0] === 'number' ? pickupCoordinates[0] : parseFloat(String(pickupCoordinates[0])),
-            typeof pickupCoordinates[1] === 'number' ? pickupCoordinates[1] : parseFloat(String(pickupCoordinates[1]))
-          ])
-          .addTo(map.current);
-
-        const dropoffMarker = new maplibregl.Marker({ 
-          element: dropoffEl,
-          draggable: onDropoffChange !== undefined,
-          anchor: 'bottom'
-        })
-          .setLngLat([
-            typeof dropoffCoordinates[0] === 'number' ? dropoffCoordinates[0] : parseFloat(String(dropoffCoordinates[0])),
-            typeof dropoffCoordinates[1] === 'number' ? dropoffCoordinates[1] : parseFloat(String(dropoffCoordinates[1]))
-          ])
-          .addTo(map.current);
-
-        // Convert coordinates to number if they're not already
-        const pickupLat = typeof pickupCoordinates[1] === 'number' ? pickupCoordinates[1] : parseFloat(String(pickupCoordinates[1]));
-        const pickupLng = typeof pickupCoordinates[0] === 'number' ? pickupCoordinates[0] : parseFloat(String(pickupCoordinates[0]));
-        const dropoffLat = typeof dropoffCoordinates[1] === 'number' ? dropoffCoordinates[1] : parseFloat(String(dropoffCoordinates[1]));
-        const dropoffLng = typeof dropoffCoordinates[0] === 'number' ? dropoffCoordinates[0] : parseFloat(String(dropoffCoordinates[0]));
-        
-        // Add popups to markers with Tailwind classes
-        const pickupPopup = new maplibregl.Popup({ 
-          offset: 25,
-          closeButton: true,
-          closeOnClick: false
-        }).setHTML(`
-          <div class="p-3 min-w-[180px] bg-white rounded-lg shadow-lg">
-            <div class="flex items-center mb-2">
-              <span class="text-blue-600 mr-1">📍</span>
-              <div class="font-bold text-blue-600">Pickup Location</div>
-            </div>
-            <div class="text-sm text-gray-600 bg-gray-50 p-1.5 rounded border border-gray-100">
-              ${pickupLat.toFixed(6)}, ${pickupLng.toFixed(6)}
-            </div>
-            <div class="text-xs text-gray-500 mt-2 italic flex items-center">
-              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              ${onPickupChange ? 'Drag marker to adjust location' : 'Starting point of journey'}
-            </div>
-          </div>
-        `);
-
-        const dropoffPopup = new maplibregl.Popup({ 
-          offset: 25,
-          closeButton: true,
-          closeOnClick: false
-        }).setHTML(`
-          <div class="p-3 min-w-[180px] bg-white rounded-lg shadow-lg">
-            <div class="flex items-center mb-2">
-              <span class="text-red-500 mr-1">🎯</span>
-              <div class="font-bold text-red-500">Destination</div>
-            </div>
-            <div class="text-sm text-gray-600 bg-gray-50 p-1.5 rounded border border-gray-100">
-              ${dropoffLat.toFixed(6)}, ${dropoffLng.toFixed(6)}
-            </div>
-            <div class="text-xs text-gray-500 mt-2 italic flex items-center">
-              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              ${onDropoffChange ? 'Drag marker to adjust destination' : 'Final destination point'}
-            </div>
-          </div>
-        `);
-
-        pickupMarker.setPopup(pickupPopup);
-        dropoffMarker.setPopup(dropoffPopup);
-
-        // Show popups briefly on load
-        setTimeout(() => {
-          pickupPopup.addTo(map.current!);
-          setTimeout(() => pickupPopup.remove(), 3000);
-        }, 500);
-
-        setTimeout(() => {
-          dropoffPopup.addTo(map.current!);
-          setTimeout(() => dropoffPopup.remove(), 3000);
-        }, 800);
-
-        // Add drag events to update coordinates
-        if (onPickupChange) {
-          pickupMarker.on('dragend', () => {
-            const lngLat = pickupMarker.getLngLat();
-            onPickupChange([lngLat.lng, lngLat.lat]);
-            // Update popup content with Tailwind classes
-            pickupPopup.setHTML(`
-              <div class="p-3 min-w-[180px] bg-white rounded-lg shadow-lg">
-                <div class="flex items-center mb-2">
-                  <span class="text-blue-600 mr-1">📍</span>
-                  <div class="font-bold text-blue-600">Pickup Location</div>
-                </div>
-                <div class="text-sm text-gray-600 bg-gray-50 p-1.5 rounded border border-gray-100">
-                  ${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)}
-                </div>
-                <div class="text-xs text-gray-500 mt-2 italic flex items-center">
-                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Coordinates updated - drag to adjust further
-                </div>
-              </div>
-            `);
-          });
-        }
-
-        if (onDropoffChange) {
-          dropoffMarker.on('dragend', () => {
-            const lngLat = dropoffMarker.getLngLat();
-            onDropoffChange([lngLat.lng, lngLat.lat]);
-            // Update popup content with Tailwind classes
-            dropoffPopup.setHTML(`
-              <div class="p-3 min-w-[180px] bg-white rounded-lg shadow-lg">
-                <div class="flex items-center mb-2">
-                  <span class="text-red-500 mr-1">🎯</span>
-                  <div class="font-bold text-red-500">Destination</div>
-                </div>
-                <div class="text-sm text-gray-600 bg-gray-50 p-1.5 rounded border border-gray-100">
-                  ${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)}
-                </div>
-                <div class="text-xs text-gray-500 mt-2 italic flex items-center">
-                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Coordinates updated - drag to adjust further
-                </div>
-              </div>
-            `);
-          });
-        }
-
         // Fetch the road-based route using our backend service
         const fetchRoute = async () => {
           try {
@@ -556,12 +353,6 @@ export default function EnhancedMap({
         if (pickupCoordinates && dropoffCoordinates) {
           fetchRoute();
         }
-
-        // Cleanup function to remove markers on unmount
-        return () => {
-          pickupMarker?.remove();
-          dropoffMarker?.remove();
-        };
       }
     };
     
@@ -651,8 +442,8 @@ export default function EnhancedMap({
         </div>
       )}
       {routeLoaded && routeDistance && routeDuration && !isDirectLineFallback && (
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg z-10 animate-pulse p-4 flex items-center transition-all duration-300 hover:scale-105 border border-gray-200">
-          <div className="bg-gray-100 rounded-full p-2 mr-3 animate-bounce">
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg z-10 p-4 flex items-center transition-all duration-300 hover:scale-105 border border-gray-200">
+          <div className="bg-gray-100 rounded-full p-2 mr-3">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#121212]" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
             </svg>
@@ -672,6 +463,53 @@ export default function EnhancedMap({
                 </svg>
                 {(routeDistance / 1000).toFixed(1)} km
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Location Information Display at bottom of map */}
+      {!hideLocationPanel && pickupCoordinates && dropoffCoordinates && (
+        <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg z-10 p-3 border border-gray-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            {/* Start Location */}
+            <div className="flex items-start gap-2">
+              <div className="w-6 h-6 bg-blue-600 rounded-tl-full rounded-tr-full rounded-bl-none rounded-br-full -rotate-45 flex-shrink-0 flex items-center justify-center mt-0.5 shadow-md">
+                <svg className="rotate-45 w-3 h-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-blue-600 mb-0.5 uppercase tracking-wide">Start Location</div>
+                {pickupLocationName && (
+                  <div className="text-gray-900 font-semibold mb-1 line-clamp-2">
+                    {pickupLocationName}
+                  </div>
+                )}
+                <div className="text-gray-600 text-[10px] font-mono bg-gray-50 px-1.5 py-0.5 rounded inline-block">
+                  {pickupCoordinates[1].toFixed(5)}°, {pickupCoordinates[0].toFixed(5)}°
+                </div>
+              </div>
+            </div>
+            
+            {/* Destination Location */}
+            <div className="flex items-start gap-2">
+              <div className="w-6 h-6 bg-red-500 rounded-tl-full rounded-tr-full rounded-bl-none rounded-br-full -rotate-45 flex-shrink-0 flex items-center justify-center mt-0.5 shadow-md">
+                <svg className="rotate-45 w-3 h-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-red-500 mb-0.5 uppercase tracking-wide">Destination</div>
+                {dropoffLocationName && (
+                  <div className="text-gray-900 font-semibold mb-1 line-clamp-2">
+                    {dropoffLocationName}
+                  </div>
+                )}
+                <div className="text-gray-600 text-[10px] font-mono bg-gray-50 px-1.5 py-0.5 rounded inline-block">
+                  {dropoffCoordinates[1].toFixed(5)}°, {dropoffCoordinates[0].toFixed(5)}°
+                </div>
+              </div>
             </div>
           </div>
         </div>

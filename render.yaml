@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: spotter-django-api
+    env: python
+    region: oregon
+    plan: free
+    rootDir: packages/django-backend
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate
+    startCommand: gunicorn config.wsgi:application
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false

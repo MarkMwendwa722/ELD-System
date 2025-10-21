@@ -66,6 +66,11 @@ export default function TripPlanningPage() {
   const departureSuggestionsRef = useRef<HTMLDivElement>(null);
   const destinationSuggestionsRef = useRef<HTMLDivElement>(null);
   const currentLocationSuggestionsRef = useRef<HTMLDivElement>(null);
+  
+  // Debounce timers for location suggestions
+  const currentLocationDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const departureDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const destinationDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Add click handler to close suggestion dropdowns when clicking outside
   useEffect(() => {
@@ -122,49 +127,89 @@ export default function TripPlanningPage() {
       }
     }
     
-    // Handle current location suggestions
-    if (name === 'currentLocation' && value.length >= 3) {
-      try {
-        const suggestions = await getLocationSuggestions(value);
-        setCurrentLocationSuggestions(suggestions);
-        setShowCurrentLocationSuggestions(true);
-      } catch (error) {
-        console.error('Error getting current location suggestions:', error);
+    // Handle current location suggestions with debounce
+    if (name === 'currentLocation') {
+      // Clear previous timeout
+      if (currentLocationDebounceRef.current) {
+        clearTimeout(currentLocationDebounceRef.current);
       }
-    } else if (name === 'currentLocation') {
-      setCurrentLocationSuggestions([]);
-      setShowCurrentLocationSuggestions(false);
+      
+      if (value.length >= 3) {
+        // Set new timeout for 300ms
+        currentLocationDebounceRef.current = setTimeout(async () => {
+          try {
+            console.log('Fetching suggestions for:', value);
+            const suggestions = await getLocationSuggestions(value);
+            console.log('Received suggestions:', suggestions);
+            setCurrentLocationSuggestions(suggestions);
+            setShowCurrentLocationSuggestions(true);
+          } catch (error) {
+            console.error('Error getting current location suggestions:', error);
+            setCurrentLocationSuggestions([]);
+            setShowCurrentLocationSuggestions(false);
+          }
+        }, 300);
+      } else {
+        setCurrentLocationSuggestions([]);
+        setShowCurrentLocationSuggestions(false);
+      }
     }
   };
   
-  // Handle departure location input for suggestions
+  // Handle departure location input for suggestions with debounce
   const handleDepartureInputChange = async (value: string) => {
     setDailyDeparture(value);
+    
+    // Clear previous timeout
+    if (departureDebounceRef.current) {
+      clearTimeout(departureDebounceRef.current);
+    }
+    
     if (value.length >= 3) {
-      try {
-        const suggestions = await getLocationSuggestions(value);
-        setDepartureSuggestions(suggestions);
-        setShowDepartureSuggestions(true);
-      } catch (error) {
-        console.error('Error getting departure suggestions:', error);
-      }
+      // Set new timeout for 300ms
+      departureDebounceRef.current = setTimeout(async () => {
+        try {
+          console.log('Fetching departure suggestions for:', value);
+          const suggestions = await getLocationSuggestions(value);
+          console.log('Received departure suggestions:', suggestions);
+          setDepartureSuggestions(suggestions);
+          setShowDepartureSuggestions(true);
+        } catch (error) {
+          console.error('Error getting departure suggestions:', error);
+          setDepartureSuggestions([]);
+          setShowDepartureSuggestions(false);
+        }
+      }, 300);
     } else {
       setDepartureSuggestions([]);
       setShowDepartureSuggestions(false);
     }
   };
   
-  // Handle destination location input for suggestions
+  // Handle destination location input for suggestions with debounce
   const handleDestinationInputChange = async (value: string) => {
     setDailyDestination(value);
+    
+    // Clear previous timeout
+    if (destinationDebounceRef.current) {
+      clearTimeout(destinationDebounceRef.current);
+    }
+    
     if (value.length >= 3) {
-      try {
-        const suggestions = await getLocationSuggestions(value);
-        setDestinationSuggestions(suggestions);
-        setShowDestinationSuggestions(true);
-      } catch (error) {
-        console.error('Error getting destination suggestions:', error);
-      }
+      // Set new timeout for 300ms
+      destinationDebounceRef.current = setTimeout(async () => {
+        try {
+          console.log('Fetching destination suggestions for:', value);
+          const suggestions = await getLocationSuggestions(value);
+          console.log('Received destination suggestions:', suggestions);
+          setDestinationSuggestions(suggestions);
+          setShowDestinationSuggestions(true);
+        } catch (error) {
+          console.error('Error getting destination suggestions:', error);
+          setDestinationSuggestions([]);
+          setShowDestinationSuggestions(false);
+        }
+      }, 300);
     } else {
       setDestinationSuggestions([]);
       setShowDestinationSuggestions(false);
@@ -409,46 +454,37 @@ export default function TripPlanningPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 p-0">
-      <div className="bg-spotter-dark py-8 text-center mb-8 shadow-lg relative overflow-hidden">
+      <div className="bg-spotter-dark py-10 px-4 sm:px-8 mb-8 shadow-lg relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20"></div>
-        <div className="relative z-10 animate-fadeIn">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-300 animate-pulse-spotter">
-              <span className="text-2xl text-white">🚛</span>
-            </div>
-            <h1 className="text-white text-5xl font-extrabold mb-0 animate-slideInRight">
-              ELD Spotter
+        <div className="max-w-7xl mx-auto relative z-10">
+          {/* Title and Description - Centered */}
+          <div className="text-center mb-6 animate-fadeIn">
+            <h1 className="text-white text-4xl sm:text-5xl font-extrabold mb-4 animate-slideInRight">
+              Driver Activity Log
             </h1>
+            <p className="text-blue-100 text-lg sm:text-xl font-medium max-w-4xl mx-auto animate-fadeIn delay-200">
+              Record and track your driving activities to maintain ELD compliance and optimize your routes
+            </p>
           </div>
-          <p className="text-blue-100 text-xl font-medium m-0 max-w-2xl mx-auto animate-fadeIn delay-200">
-            Electronic Logging Device - Driver Activity Management
-          </p>
+          
+          {/* Dashboard Button - Centered below text */}
+          <div className="flex justify-center animate-fadeIn delay-300">
+            <a
+              href="/dashboard"
+              className="inline-flex items-center px-6 py-3 bg-green-600 text-white text-base font-semibold rounded-lg hover:bg-green-700 shadow-lg hover:shadow-xl transition-all duration-200 gap-2 whitespace-nowrap"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+              </svg>
+              View 24-Hour Dashboard
+            </a>
+          </div>
         </div>
         
         <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-blue-400"></div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-8 pb-8 sm:pb-16 relative">
-        <div className="text-center mb-10 sm:mb-14 animate-fadeIn delay-300">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-spotter-dark">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-700">
-              Driver Activity Log
-            </span>
-          </h2>
-          <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-6">
-            Record and track your driving activities to maintain ELD compliance and optimize your routes
-          </p>
-          <a
-            href="/dashboard"
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-            </svg>
-            View 24-Hour Dashboard
-          </a>
-        </div>
-
         {/* Date Selector for Daily Log */}
         <div className="bg-white shadow-lg rounded-xl p-6 mb-8 transform transition-all hover:shadow-xl animate-fadeIn delay-400 border border-blue-100">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">

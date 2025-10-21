@@ -211,6 +211,8 @@ export default function RouteDisplayPage({ tripData, onBack }: RouteDisplayProps
                 coordinates={routeCoordinates}
                 startPoint={routeCoordinates[0]}
                 endPoint={routeCoordinates[routeCoordinates.length - 1]}
+                startLocationName={tripData.pickupLocation}
+                endLocationName={tripData.dropoffLocation}
                 className="shadow-md"
               />
             </div>

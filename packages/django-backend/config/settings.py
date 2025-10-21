@@ -90,12 +90,24 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3002",
     "http://127.0.0.1:3003",
     "http://127.0.0.1:5173",
-    "https://eld-system-frontend.vercel.app/"
+    "https://eld-system-frontend.vercel.app",
 ]
 
 # Add production frontend URL if set
 if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+
+# If FRONTEND_URL is set to a hostname, also add its host to ALLOWED_HOSTS
+try:
+    from urllib.parse import urlparse
+    parsed = urlparse(FRONTEND_URL)
+    frontend_host = parsed.netloc or parsed.path
+    if frontend_host and frontend_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(frontend_host)
+except Exception:
+    # If parsing fails, fall back to adding the raw FRONTEND_URL
+    if FRONTEND_URL and FRONTEND_URL not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(FRONTEND_URL)
 
 CORS_ALLOW_CREDENTIALS = True
 

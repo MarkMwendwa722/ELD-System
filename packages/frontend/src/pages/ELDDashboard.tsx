@@ -101,7 +101,7 @@ export default function ELDDashboard() {
       <div className="py-16 text-center mb-8 shadow-lg relative overflow-hidden">
         {/* Unsplash image background with overlay */}
         <div className="absolute inset-0 bg-cover bg-center z-0" 
-             style={{backgroundImage: "url('https://source.unsplash.com/random/1600x400?logistics,truck,highway')"}}> 
+             style={{backgroundImage: "url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1600&h=400&fit=crop')"}}> 
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-blue-900/60 to-purple-900/60"></div>
         </div>
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#6D5ACD] via-[#8B5CF6] to-[#7A42F0] z-10"></div>
@@ -258,15 +258,18 @@ export default function ELDDashboard() {
             </div>
             
             <div className="h-96 rounded-xl overflow-hidden border border-[#3D3C8E] shadow-lg relative">
-              {/* Map component remains unchanged to preserve functionality */}
+              {/* Map component without location info overlay - it will be displayed below */}
               <EnhancedMap 
                 pickupCoordinates={mapLocations[0]?.coordinates}
                 dropoffCoordinates={mapLocations[mapLocations.length - 1]?.coordinates}
+                pickupLocationName={mapLocations[0]?.location}
+                dropoffLocationName={mapLocations[mapLocations.length - 1]?.location}
                 className="w-full h-full"
                 onPickupChange={() => {}}
                 onDropoffChange={() => {}}
                 allowClickToSetPickup={false}
                 allowClickToSetDropoff={false}
+                hideLocationPanel={true}
               />
               
               {/* Overlay with loading effect that fades out */}
@@ -308,6 +311,53 @@ export default function ELDDashboard() {
                 </div>
               </div>
             </div>
+            
+            {/* Trip Locations Section - displayed below legend */}
+            {mapLocations.length > 0 && (
+              <div className="mt-4 bg-white rounded-lg shadow-md border border-gray-200 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Start Location */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-tl-full rounded-tr-full rounded-bl-none rounded-br-full -rotate-45 flex-shrink-0 flex items-center justify-center shadow-md">
+                      <svg className="rotate-45 w-4 h-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-blue-600 mb-1 uppercase tracking-wide text-sm">Start Location</div>
+                      {mapLocations[0]?.location && (
+                        <div className="text-gray-900 font-semibold mb-1.5 text-sm">
+                          {mapLocations[0].location}
+                        </div>
+                      )}
+                      <div className="text-gray-600 text-xs font-mono bg-gray-50 px-2 py-1 rounded inline-block">
+                        {mapLocations[0]?.coordinates[1].toFixed(5)}°, {mapLocations[0]?.coordinates[0].toFixed(5)}°
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Destination Location */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-red-500 rounded-tl-full rounded-tr-full rounded-bl-none rounded-br-full -rotate-45 flex-shrink-0 flex items-center justify-center shadow-md">
+                      <svg className="rotate-45 w-4 h-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-red-500 mb-1 uppercase tracking-wide text-sm">Destination</div>
+                      {mapLocations[mapLocations.length - 1]?.location && (
+                        <div className="text-gray-900 font-semibold mb-1.5 text-sm">
+                          {mapLocations[mapLocations.length - 1].location}
+                        </div>
+                      )}
+                      <div className="text-gray-600 text-xs font-mono bg-gray-50 px-2 py-1 rounded inline-block">
+                        {mapLocations[mapLocations.length - 1]?.coordinates[1].toFixed(5)}°, {mapLocations[mapLocations.length - 1]?.coordinates[0].toFixed(5)}°
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

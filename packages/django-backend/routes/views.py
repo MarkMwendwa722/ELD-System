@@ -497,7 +497,7 @@ def reverse_geocode(request):
 @require_http_methods(["GET"])
 def location_suggestions(request):
     """
-    Get location suggestions based on query using Google Maps Places Autocomplete API
+    Get location suggestions based on query using Google Maps Geocoding API (faster)
     """
     try:
         query = request.GET.get('query')
@@ -517,44 +517,43 @@ def location_suggestions(request):
         # Google Maps API Key
         api_key = 'AIzaSyDwQ17Rk3SZvAH5iubSdeqj65bqfMpQqOU'
         
-        url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json'
+        # Use Geocoding API instead - single fast call
+        url = 'https://maps.googleapis.com/maps/api/geocode/json'
         params = {
-            'input': query,
+            'address': query,
             'key': api_key
         }
         
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=3)
         
         if response.status_code == 200:
             data = response.json()
             suggestions = []
             
             if data['status'] == 'OK':
-                # For each prediction, we need to get the coordinates using Place Details API
-                for prediction in data.get('predictions', [])[:5]:
-                    place_id = prediction['place_id']
+                # Get up to 5 results
+                for result in data.get('results', [])[:5]:
+                    location = result['geometry']['location']
                     
-                    # Get place details to get coordinates
-                    details_url = 'https://maps.googleapis.com/maps/api/place/details/json'
-                    details_params = {
-                        'place_id': place_id,
-                        'fields': 'geometry,formatted_address,name',
-                        'key': api_key
-                    }
+                    # Extract meaningful name from address components
+                    name = result.get('formatted_address', query)
+                    address_components = result.get('address_components', [])
                     
-                    details_response = requests.get(details_url, params=details_params, timeout=5)
+                    # Try to get a shorter, meaningful name
+                    if address_components:
+                        # Prefer locality (city) or administrative area
+                        for component in address_components:
+                            if 'locality' in component.get('types', []):
+                                name = component['long_name']
+                                break
+                            elif 'administrative_area_level_1' in component.get('types', []):
+                                name = component['long_name']
                     
-                    if details_response.status_code == 200:
-                        details_data = details_response.json()
-                        if details_data['status'] == 'OK':
-                            result = details_data['result']
-                            location = result['geometry']['location']
-                            
-                            suggestions.append({
-                                'name': result.get('name', prediction['description']),
-                                'fullAddress': result.get('formatted_address', prediction['description']),
-                                'coordinates': [location['lng'], location['lat']]
-                            })
+                    suggestions.append({
+                        'name': name,
+                        'fullAddress': result.get('formatted_address', query),
+                        'coordinates': [location['lng'], location['lat']]
+                    })
             
             return JsonResponse({
                 'suggestions': suggestions,

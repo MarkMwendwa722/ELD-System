@@ -7,7 +7,8 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<TripPlanningPage />} />
+          <Route path="/" element={<ELDDashboard />} />
+          <Route path="/trip-planning" element={<TripPlanningPage />} />
           <Route path="/dashboard" element={<ELDDashboard />} />
         </Routes>
       </div>

@@ -18,7 +18,7 @@ export interface LocationSuggestion {
 // Create axios instance for API requests
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 5000, // 5 seconds - faster with optimized backend
   headers: {
     'Content-Type': 'application/json'
   }
