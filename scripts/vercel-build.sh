@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env sh
+set -eu
 
 # Build script for Vercel. Runs install+build in packages/frontend when present.
 if [ -f packages/frontend/package.json ]; then
