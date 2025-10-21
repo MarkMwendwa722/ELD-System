@@ -3,27 +3,36 @@ import type { PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  base: '/ELD-System/',
-  plugins: [react() as unknown as PluginOption],
-  server: {
-    port: 3000,
-    host: true,
-    proxy: {
-      '/api/django': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/django/, '')
-      },
-      '/api/node': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/node/, '')
+// Make the base path dynamic so the same build can work for Vercel (root '/')
+// and GitHub Pages (repo is served at '/ELD-System/'). Local/dev falls back to '/'.
+export default defineConfig(() => {
+  const isVercel = !!process.env.VERCEL;
+  const isGitHubActions = !!process.env.GITHUB_ACTIONS;
+
+  const base = isVercel ? '/' : isGitHubActions ? '/ELD-System/' : '/';
+
+  return {
+    base,
+    plugins: [react() as unknown as PluginOption],
+    server: {
+      port: 3000,
+      host: true,
+      proxy: {
+        '/api/django': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/django/, '')
+        },
+        '/api/node': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/node/, '')
+        }
       }
+    },
+    build: {
+      outDir: 'dist',
+      sourcemap: true
     }
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: true
   }
 })
